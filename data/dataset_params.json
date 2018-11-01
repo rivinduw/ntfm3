@@ -1,0 +1,7 @@
+{
+    "train_size": 5700,
+    "dev_size": 50,
+    "test_size": 50,
+
+    "num_oov_buckets": 1
+}
