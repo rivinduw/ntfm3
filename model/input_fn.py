@@ -2,11 +2,12 @@
 #input_fn stores the input data pipeline
 
 import tensorflow as tf
+import pdb
 
-filenames = ["../data/SH1N30s2.csv"]
+filenames = ["data/SH1N30s2.csv"]
 numCols = 90
 
-def load_dataset_from_csv(path_txt="../data/"):
+def load_dataset_from_csv(path_txt="data/"):
     """Create tf.data Instance from txt file
 
     Args:
@@ -19,8 +20,12 @@ def load_dataset_from_csv(path_txt="../data/"):
     # Creates a dataset that reads all of the records from CSV files, with headers,
     #  extracting float data from 90 float columns ater the first datetime column
     record_defaults = [[0.0]] * numCols  # Only provide defaults for the selected columns
-    dataset = tf.contrib.data.CsvDataset(filenames, record_defaults, header=True, select_cols=list(range(1, 91)))
-
+    # dataset [size,90]
+    # dataset = tf.contrib.data.CsvDataset(filenames, record_defaults, header=True, select_cols=list(range(1, 91)))
+    dataset = tf.contrib.data.make_csv_dataset(filenames,batch_size=32*120, header=True)
+    # print(dataset)
+    # pdb.set_trace()
+    # dataset [size/10,120,90]?
     dataset.apply(tf.contrib.data.sliding_window_batch(window_size=120, window_shift=10))
 
     # # Load txt file, one example per line
@@ -62,15 +67,15 @@ def input_fn(mode, inputs, labels, params):
     iterator = dataset.make_initializable_iterator()
 
     # Query the output of the iterator for input to the model
-    input_batch = iterator.get_next()
+    (input_batch,labels_batch) = iterator.get_next()
     init_op = iterator.initializer
 
-    print(input_batch)
-
+    # print(labels_batch)
+    # pdb.set_trace()
     # Build and return a dictionnary containing the nodes / ops
     inputs = {
-        'input_batch': input_batch[:-1],
-        'label_batch': input_batch[1:],
+        'input_batch': input_batch,
+        'label_batch': labels_batch,
         'iterator_init_op': init_op
     }
 
