@@ -66,6 +66,7 @@ if __name__ == '__main__':
     train_labels = load_dataset_from_csv()#load_dataset_from_csv(path_train_labels)
     eval_sentences = load_dataset_from_csv()#load_dataset_from_csv(path_eval_sentences)
     eval_labels = load_dataset_from_csv()
+    print(train_sentences)
 
     # Specify other parameters for the dataset and the model
     params.eval_size = params.dev_size
@@ -75,6 +76,7 @@ if __name__ == '__main__':
 
     # Create the two iterators over the two datasets
     train_inputs = input_fn('train', train_sentences, train_labels, params)
+
     eval_inputs = input_fn('eval', eval_sentences, eval_labels, params)
     logging.info("- done.")
 
