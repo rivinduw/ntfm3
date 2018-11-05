@@ -41,9 +41,9 @@ if __name__ == '__main__':
 
     # Check that we are not overwriting some previous experiment
     # Comment these lines if you are developing your model and don't care about overwritting
-    model_dir_has_best_weights = os.path.isdir(os.path.join(args.model_dir, "best_weights"))
-    overwritting = model_dir_has_best_weights and args.restore_dir is None
-    assert not overwritting, "Weights found in model_dir, aborting to avoid overwrite"
+    # model_dir_has_best_weights = os.path.isdir(os.path.join(args.model_dir, "best_weights"))
+    # overwritting = model_dir_has_best_weights and args.restore_dir is None
+    # assert not overwritting, "Weights found in model_dir, aborting to avoid overwrite"
 
     # Set the logger
     set_logger(os.path.join(args.model_dir, 'train.log'))
@@ -63,21 +63,21 @@ if __name__ == '__main__':
     # Create the input data pipeline
     logging.info("Creating the datasets...")
     train_sentences = load_dataset_from_csv()
-    train_labels = load_dataset_from_csv()#load_dataset_from_csv(path_train_labels)
+    # train_labels = load_dataset_from_csv()#load_dataset_from_csv(path_train_labels)
     eval_sentences = load_dataset_from_csv()#load_dataset_from_csv(path_eval_sentences)
-    eval_labels = load_dataset_from_csv()
-    print(train_sentences)
+    # eval_labels = load_dataset_from_csv()
 
     # Specify other parameters for the dataset and the model
     params.eval_size = params.dev_size
     params.buffer_size = params.train_size # buffer size for shuffling
+    params.restore_dir= None#"experiments/best_weights"
     # params.id_pad_word = words.lookup(tf.constant(params.pad_word))
     # params.id_pad_tag = tags.lookup(tf.constant(params.pad_tag))
 
     # Create the two iterators over the two datasets
-    train_inputs = input_fn('train', train_sentences, train_labels, params)
+    train_inputs = input_fn('train', train_sentences,train_sentences, params)
 
-    eval_inputs = input_fn('eval', eval_sentences, eval_labels, params)
+    eval_inputs = input_fn('eval', eval_sentences,eval_sentences, params)
     logging.info("- done.")
 
     # Define the models (2 different set of nodes that share weights for train and eval)
@@ -88,4 +88,5 @@ if __name__ == '__main__':
 
     # Train the model
     logging.info("Starting training for {} epoch(s)".format(params.num_epochs))
-    train_and_evaluate(train_model_spec, eval_model_spec, args.model_dir, params, args.restore_dir)
+    # train_and_evaluate(train_model_spec, eval_model_spec, args.model_dir, params, args.restore_dir)
+    train_and_evaluate(train_model_spec, eval_model_spec, args.model_dir, params, params.restore_dir)

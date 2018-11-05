@@ -32,9 +32,10 @@ def build_model(mode, inputs, params):
         # logits = tf.layers.dense(output, params.number_of_tags)
         # project output from rnn output size to OUTPUT_SIZE. Sometimes it is worth adding
         # an extra layer here.
-        final_projection = lambda x: tf.layers.dense(x, num_outputs=params.rnn_output_size)
+        # final_projection = lambda x: tf.layers.dense(x, params.rnn_output_size)
         # apply projection to every timestep.
-        predicted_outputs = tf.map_fn(final_projection, rnn_outputs)
+        # predicted_outputs = tf.map_fn(final_projection, rnn_outputs)
+        predicted_outputs =  tf.layers.dense(rnn_outputs, params.rnn_output_size)
 
     else:
         raise NotImplementedError("Unknown model version: {}".format(params.model_version))
@@ -68,13 +69,16 @@ def model_fn(mode, inputs, params, reuse=False):
 
     # Define loss and accuracy (we need to apply a mask to account for padding)
     # losses = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels)
-    losses = tf.losses.mean_squared_error(predicted_outputs,labels)
+    losses = tf.square(predicted_outputs-labels)#tf.losses.mean_squared_error(predicted_outputs,labels)
     # mask = tf.sequence_mask(sentence_lengths)
     # losses = tf.boolean_mask(losses, mask)
     loss = tf.reduce_mean(losses)
     # accuracy = tf.reduce_mean(tf.cast(tf.equal(labels, predictions), tf.float32))
     TINY = 1e-6
-    mape = tf.mean(tf.abs((labels - predicted_outputs)/ (labels+TINY)))
+    mape = tf.reduce_mean(
+    tf.clip_by_value(
+    tf.abs((labels - predicted_outputs)/ (labels+TINY))
+    ,0,1))
     accuracy = 1 - mape
 
     # Define training step that minimizes the loss with the Adam optimizer

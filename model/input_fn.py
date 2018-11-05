@@ -2,12 +2,11 @@
 #input_fn stores the input data pipeline
 
 import tensorflow as tf
-import pdb
 
 filenames = ["data/SH1N30s2.csv"]
 numCols = 90
 
-def load_dataset_from_csv(path_txt="data/"):
+def load_dataset_from_csv(path_txt="../data/"):
     """Create tf.data Instance from txt file
 
     Args:
@@ -20,13 +19,16 @@ def load_dataset_from_csv(path_txt="data/"):
     # Creates a dataset that reads all of the records from CSV files, with headers,
     #  extracting float data from 90 float columns ater the first datetime column
     record_defaults = [[0.0]] * numCols  # Only provide defaults for the selected columns
-    # dataset [size,90]
-    # dataset = tf.contrib.data.CsvDataset(filenames, record_defaults, header=True, select_cols=list(range(1, 91)))
-    dataset = tf.contrib.data.make_csv_dataset(filenames,batch_size=32*120, header=True)
-    # print(dataset)
-    # pdb.set_trace()
-    # dataset [size/10,120,90]?
-    dataset.apply(tf.contrib.data.sliding_window_batch(window_size=120, window_shift=10))
+    dataset = tf.contrib.data.CsvDataset(filenames, record_defaults, header=True, select_cols=list(range(1, 91)))
+
+    def parser(*x):
+        x = tf.convert_to_tensor(x)
+        fixed_range=tf.convert_to_tensor([2000.0,100.0]*45)
+        x = tf.div(x,fixed_range)
+        return x
+    dataset = dataset.map(parser)
+    # dataset = dataset.map(lambda *x: tf.div(tf.convert_to_tensor(x),100))
+    # dataset = dataset.apply(tf.contrib.data.sliding_window_batch(window_size=120, window_shift=10))
 
     # # Load txt file, one example per line
     # dataset = tf.data.TextLineDataset(path_txt)
@@ -54,28 +56,29 @@ def input_fn(mode, inputs, labels, params):
     buffer_size = params.buffer_size if is_training else 1
 
     # Zip the sentence and the labels together
-    dataset = tf.data.Dataset.zip((inputs, labels))
+    dataset = inputs #tf.data.Dataset.zip((inputs, labels))
 
     # Create batches and pad the sentences of different length
     dataset = (dataset
+        # .apply(tf.contrib.data.sliding_window_batch(window_size=120, window_shift=10))
         .shuffle(buffer_size=buffer_size)
         .batch(params.batch_size)
         .prefetch(1)  # make sure you always have one batch ready to serve
     )
 
+    dataset = dataset.batch(params.batch_size)
+
     # Create initializable iterator from this dataset so that we can reset at each epoch
     iterator = dataset.make_initializable_iterator()
 
     # Query the output of the iterator for input to the model
-    (input_batch,labels_batch) = iterator.get_next()
+    input_batch = iterator.get_next()
     init_op = iterator.initializer
 
-    # print(labels_batch)
-    # pdb.set_trace()
     # Build and return a dictionnary containing the nodes / ops
     inputs = {
         'input_batch': input_batch,
-        'label_batch': labels_batch,
+        'label_batch': input_batch,
         'iterator_init_op': init_op
     }
 
