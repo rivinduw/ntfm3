@@ -21,10 +21,18 @@ def load_dataset_from_csv(path_txt="../data/"):
     record_defaults = [[0.0]] * numCols  # Only provide defaults for the selected columns
     dataset = tf.contrib.data.CsvDataset(filenames, record_defaults, header=True, select_cols=list(range(1, 91)))
 
+
     def parser(*x):
+        """The output from the CsvDataset is wierd (has a separate tensor for each feature?).
+            Converting it to a tensor makes it of size numFeatures
+            Normalizing the features is also done here.
+        """
         x = tf.convert_to_tensor(x)
-        fixed_range=tf.convert_to_tensor([2000.0,100.0]*45)
-        x = tf.div(x,fixed_range)
+        # 90 columns, the even columns are volumes and odd are occupancies
+        # max value for volume was around 2000veh-ish and 100% for occupancies
+        #TODO: remove hardcoded values. could pass list of max values for each feature
+        max_values=tf.convert_to_tensor([2000.0,100.0]*45)
+        x = tf.div(x,max_values) #divide by max makes x [0,1] (usually no negatives)
         return x
     dataset = dataset.map(parser)
     # dataset = dataset.map(lambda *x: tf.div(tf.convert_to_tensor(x),100))
