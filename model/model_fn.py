@@ -32,10 +32,11 @@ def build_model(mode, inputs, params):
         # logits = tf.layers.dense(output, params.number_of_tags)
         # project output from rnn output size to OUTPUT_SIZE. Sometimes it is worth adding
         # an extra layer here.
-        # final_projection = lambda x: tf.layers.dense(x, params.rnn_output_size)
+        # final_projection = lambda x: tf.layers.dense(x,1)# params.rnn_output_size)
         # apply projection to every timestep.
         # predicted_outputs = tf.map_fn(final_projection, rnn_outputs)
-        predicted_outputs =  tf.layers.dense(rnn_outputs, params.rnn_output_size)
+        predicted_outputs =  tf.layers.dense(rnn_outputs, params.rnn_output_size,activation='relu')
+        predicted_outputs =  tf.layers.dense(predicted_outputs, params.rnn_output_size)
 
     else:
         raise NotImplementedError("Unknown model version: {}".format(params.model_version))
@@ -83,9 +84,17 @@ def model_fn(mode, inputs, params, reuse=False):
 
     # Define training step that minimizes the loss with the Adam optimizer
     if is_training:
-        optimizer = tf.train.AdamOptimizer(params.learning_rate)
+        optimizer = tf.train.AdamOptimizer(params.learning_rate)#tf.train.GradientDescentOptimizer(0.001)#
         global_step = tf.train.get_or_create_global_step()
-        train_op = optimizer.minimize(loss, global_step=global_step)
+        # train_op = optimizer.minimize(loss, global_step=global_step)
+
+        gradients, variables = zip(*optimizer.compute_gradients(loss))
+        gradients, _ = tf.clip_by_global_norm(gradients, 5.0)
+        train_op = optimizer.apply_gradients(zip(gradients, variables))
+        #clip by value
+        # grads = optimizer.compute_gradients(loss)
+        # clipped_grads = [(tf.clip_by_value(grad, -1., 1.), var) for grad, var in grads]
+        # train_op = optimizer.apply_gradients(clipped_grads, global_step=global_step)
 
     # -----------------------------------------------------------
     # METRICS AND SUMMARIES
@@ -122,6 +131,7 @@ def model_fn(mode, inputs, params, reuse=False):
     model_spec['metrics'] = metrics
     model_spec['update_metrics'] = update_metrics_op
     model_spec['summary_op'] = tf.summary.merge_all()
+
 
     if is_training:
         model_spec['train_op'] = train_op

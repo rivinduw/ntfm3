@@ -37,6 +37,17 @@ def evaluate_sess(sess, model_spec, num_steps, writer=None, params=None):
     metrics_string = " ; ".join("{}: {:05.3f}".format(k, v) for k, v in metrics_val.items())
     logging.info("- Eval metrics: " + metrics_string)
 
+    #TODO: comment later
+    predicted_outputs,labels,input_batch = sess.run([model_spec['predictions'],model_spec['label_batch'],model_spec['input_batch']])
+    import pandas as pd
+    print(predicted_outputs.shape)
+    print(labels.shape)
+    print(input_batch.shape)
+    pd.DataFrame(predicted_outputs[0,:,:]).to_csv('predicted_outputs.csv')
+    pd.DataFrame(labels[0,:,:]).to_csv('labels.csv')
+    pd.DataFrame(input_batch[0,:,:]).to_csv('input_batch.csv')
+
+
     # Add summaries manually to writer at global_step_val
     if writer is not None:
         global_step_val = sess.run(global_step)

@@ -5,6 +5,8 @@ import tensorflow as tf
 
 filenames = ["data/SH1N30s2.csv"]
 numCols = 90
+max_vals = [46,24,136,23.8333,136,23.8333,175,19.2778,97,27.5,63,13.6667,454,24.5,899,37.25,850,67,1262,57.8571,2064,56.9231,87,55.6667,804,66,1362,67.3333,472,83.6667,560,68.3333,563,74.1667,563,74.1667,952,70.8333,437,60.9583,1275,61.2222,884,78.3333,394,80.5,394,80.5,189,84,325,49.4167,616,44.5,651,60,718,59,1546,54.1667,1546,60.1667,796,77.25,1356,67.3333,772,69.1667,162,80.6667,162,80.6667,485,55,307,56.525,293,51.75,271,56.65,308,56.65,299,59.2857,250,64.8,126,94,126,94]
+max_values=tf.convert_to_tensor(max_vals)#[1000.0,50.0]*45)
 
 def load_dataset_from_csv(path_txt="../data/"):
     """Create tf.data Instance from txt file
@@ -31,7 +33,7 @@ def load_dataset_from_csv(path_txt="../data/"):
         # 90 columns, the even columns are volumes and odd are occupancies
         # max value for volume was around 2000veh-ish and 100% for occupancies
         #TODO: remove hardcoded values. could pass list of max values for each feature
-        max_values=tf.convert_to_tensor([2000.0,100.0]*45)
+        max_values=tf.convert_to_tensor(max_vals)#[1000.0,50.0]*45)
         x = tf.div(x,max_values) #divide by max makes x [0,1] (usually no negatives)
         return x
     dataset = dataset.map(parser)
@@ -68,13 +70,13 @@ def input_fn(mode, inputs, labels, params):
 
     # Create batches and pad the sentences of different length
     dataset = (dataset
-        # .apply(tf.contrib.data.sliding_window_batch(window_size=120, window_shift=10))
+        .apply(tf.contrib.data.sliding_window_batch(window_size=120, window_shift=1))
         .shuffle(buffer_size=buffer_size)
         .batch(params.batch_size)
         .prefetch(1)  # make sure you always have one batch ready to serve
     )
 
-    dataset = dataset.batch(params.batch_size)
+    # dataset = dataset.batch(params.batch_size)
 
     # Create initializable iterator from this dataset so that we can reset at each epoch
     iterator = dataset.make_initializable_iterator()
@@ -86,7 +88,7 @@ def input_fn(mode, inputs, labels, params):
     # Build and return a dictionnary containing the nodes / ops
     inputs = {
         'input_batch': input_batch,
-        'label_batch': input_batch,
+        'label_batch': max_values*input_batch,
         'iterator_init_op': init_op
     }
 
