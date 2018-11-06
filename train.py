@@ -62,22 +62,24 @@ if __name__ == '__main__':
 
     # Create the input data pipeline
     logging.info("Creating the datasets...")
-    train_sentences = load_dataset_from_csv()
+    train_x = load_dataset_from_csv(filenames = ["data/SH1N30s2c.csv"])
+    train_y = load_dataset_from_csv(filenames = ["data/labels/SH1N30s2c.csv"])
     # train_labels = load_dataset_from_csv()#load_dataset_from_csv(path_train_labels)
-    eval_sentences = load_dataset_from_csv()#load_dataset_from_csv(path_eval_sentences)
+    eval_x = load_dataset_from_csv(filenames = ["data/SH1N30s2c.csv"])#load_dataset_from_csv(path_eval_sentences)
+    eval_y = load_dataset_from_csv(filenames = ["data/labels/SH1N30s2c.csv"])
     # eval_labels = load_dataset_from_csv()
 
     # Specify other parameters for the dataset and the model
     params.eval_size = params.dev_size
     params.buffer_size = 6000#params.train_size # buffer size for shuffling
-    params.restore_dir= None#"experiments/best_weights"#None#
+    params.restore_dir= "experiments/best_weights"#None#
     # params.id_pad_word = words.lookup(tf.constant(params.pad_word))
     # params.id_pad_tag = tags.lookup(tf.constant(params.pad_tag))
 
     # Create the two iterators over the two datasets
-    train_inputs = input_fn('train', train_sentences,train_sentences, params)
+    train_inputs = input_fn('train', train_x,train_y, params)
 
-    eval_inputs = input_fn('eval', eval_sentences,eval_sentences, params)
+    eval_inputs = input_fn('eval', eval_x,eval_y, params)
     logging.info("- done.")
 
     # Define the models (2 different set of nodes that share weights for train and eval)

@@ -37,7 +37,7 @@ def evaluate_sess(sess, model_spec, num_steps, writer=None, params=None):
     metrics_string = " ; ".join("{}: {:05.3f}".format(k, v) for k, v in metrics_val.items())
     logging.info("- Eval metrics: " + metrics_string)
 
-    #TODO: comment later
+    # DELETE write out to csv the inputs and outputs/predictions
     predicted_outputs,labels,input_batch = sess.run([model_spec['predictions'],model_spec['label_batch'],model_spec['input_batch']])
     import pandas as pd
     print(predicted_outputs.shape)
