@@ -2,6 +2,7 @@
 #model_fn.py stores the model architecture
 
 import tensorflow as tf
+import numpy as np
 
 
 def build_model(mode, inputs, params):
@@ -70,9 +71,19 @@ def model_fn(mode, inputs, params, reuse=False):
 
     # Define loss and accuracy (we need to apply a mask to account for padding)
     # losses = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels)
-    losses = tf.square(predicted_outputs-labels)#tf.losses.mean_squared_error(predicted_outputs,labels)
-    # mask = tf.sequence_mask(sentence_lengths)
+    print(labels.shape)
+    feature_mask = np.full((32,120,90), False)
+    feature_mask[:,:,20*2:25*2:2] = True
     # losses = tf.boolean_mask(losses, mask)
+    predicted_outputs = tf.reshape(tf.boolean_mask(predicted_outputs, feature_mask),[32,120,5])
+    labels = tf.reshape(tf.boolean_mask(labels, feature_mask),[32,120,5])
+    losses = tf.square(predicted_outputs-labels)
+
+    # losses = tf.square(predicted_outputs-labels)#tf.losses.mean_squared_error(predicted_outputs,labels)
+    # mask = tf.sequence_mask(sentence_lengths)
+    timestep_mask = np.full((32,120,5), True)
+    losses = tf.boolean_mask(losses, timestep_mask)
+
     loss = tf.reduce_mean(losses)
     # accuracy = tf.reduce_mean(tf.cast(tf.equal(labels, predictions), tf.float32))
     TINY = 1e-6
@@ -122,6 +133,7 @@ def model_fn(mode, inputs, params, reuse=False):
     # Create the model specification and return it
     # It contains nodes or operations in the graph that will be used for training and evaluation
     model_spec = inputs
+    model_spec['labels'] = labels
     variable_init_op = tf.group(*[tf.global_variables_initializer(), tf.tables_initializer()])
     model_spec['variable_init_op'] = variable_init_op
     model_spec['predictions'] = predicted_outputs
