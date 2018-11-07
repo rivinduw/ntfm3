@@ -87,7 +87,7 @@ def input_fn(mode, inputs, labels, params):
     # Create batches and pad the sentences of different length
 
 
-    dataset = dataset.apply(tf.contrib.data.sliding_window_batch(window_size=120, window_shift=1))
+    dataset = dataset.apply(tf.contrib.data.sliding_window_batch(window_size=120, window_shift=10))
 
     dataset = (dataset
         # .apply(tf.contrib.data.sliding_window_batch(window_size=120, window_shift=1))
