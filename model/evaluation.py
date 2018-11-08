@@ -6,6 +6,8 @@ import os
 from tqdm import trange
 import tensorflow as tf
 
+import numpy as np
+
 from model.utils import save_dict_to_json
 
 
@@ -37,12 +39,41 @@ def evaluate_sess(sess, model_spec, num_steps, writer=None, params=None):
     metrics_string = " ; ".join("{}: {:05.3f}".format(k, v) for k, v in metrics_val.items())
     logging.info("- Eval metrics: " + metrics_string)
 
-    # DELETE write out to csv the inputs and outputs/predictions
+    # DELETE DEBUGGING CODE write out to csv the inputs and outputs/predictions
     predicted_outputs,labels,input_batch = sess.run([model_spec['predictions'],model_spec['labels'],model_spec['input_batch']])
     import pandas as pd
     print(predicted_outputs.shape)
     print(labels.shape)
     print(input_batch.shape)
+    predicted_outputs = predicted_outputs.reshape((32,120,5))
+    labels = labels.reshape((32,120,5))
+    input_batch = input_batch.reshape((32,120,90))
+
+    def rolling_sum(a, n=10) :
+        ret = np.cumsum(a, axis=0, dtype=float)
+        ret[n:, :] = ret[n:, :] - ret[:-n, :]
+        #ret[n:, ::2] = ret[n:, ::2] - ret[:-n, ::2]
+        # ret[n:,1::2] = np.divide(ret[n:,1::2],n)##even columns are occupancy and shoud be averaged instead of summed
+        return ret[n - 1:,:]
+    def div0( a, b ):
+        with np.errstate(divide='ignore', invalid='ignore'):
+            a = a.astype(float)
+            b = b.astype(float)
+            sel = np.bitwise_not(np.isclose(b, 0))
+            c = np.true_divide( a[sel], b[sel] )
+            c[ ~ np.isfinite( c )] = 0  # -inf inf NaN
+        return c
+    def regAccuracy(ground_truth, predictions):
+        mape = np.mean(np.ma.fix_invalid(np.abs(div0((ground_truth - predictions), ground_truth)),fill_value=0))
+        return 1 - mape
+    mean_acc = []
+    for ii in range(32):
+        pred_sum = rolling_sum(np.array(predicted_outputs[ii,:,:]))
+        act_sum = rolling_sum(np.array(labels[ii,:,:]))
+        accu = regAccuracy(act_sum, pred_sum)
+        mean_acc.append(accu)
+    print("5min approx accuracy: ",np.mean(np.array(mean_acc)))
+    pd.DataFrame(np.array(mean_acc)).to_csv('meanAcc.csv')
     pd.DataFrame(predicted_outputs[0,:,:]).to_csv('predicted_outputs.csv')
     pd.DataFrame(labels[0,:,:]).to_csv('labels.csv')
     pd.DataFrame(input_batch[0,:,:]).to_csv('input_batch.csv')
