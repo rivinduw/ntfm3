@@ -26,7 +26,10 @@ def build_model(mode, inputs, params):
         # sentence = tf.nn.embedding_lookup(embeddings, sentence)
 
         # Apply LSTM over the embeddings
-        lstm_cell = tf.nn.rnn_cell.LSTMCell(params.lstm_num_units)
+        # lstm_cell = tf.nn.rnn_cell.LSTMCell(params.lstm_num_units,use_peepholes=True,cell_clip=3.0)
+        lstm_cell = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(params.lstm_num_units)
+        
+
         rnn_outputs, rnn_states  = tf.nn.dynamic_rnn(lstm_cell, input_batch, dtype=tf.float32)
 
         # # Compute logits from the output of the LSTM
@@ -75,14 +78,16 @@ def model_fn(mode, inputs, params, reuse=False):
     feature_mask = np.full((32,120,90), False)
     feature_mask[:,:,20*2:25*2:2] = True
     # losses = tf.boolean_mask(losses, mask)
-    predicted_outputs = tf.reshape(tf.boolean_mask(predicted_outputs, feature_mask),[32,120,5])
-    labels = tf.reshape(tf.boolean_mask(labels, feature_mask),[32,120,5])
+    # predicted_outputs = tf.reshape(tf.boolean_mask(predicted_outputs, feature_mask),[32,120,5])
+    # labels = tf.reshape(tf.boolean_mask(labels, feature_mask),[32,120,5])
+    predicted_outputs = tf.boolean_mask(predicted_outputs, feature_mask)
+    labels = tf.boolean_mask(labels, feature_mask)
     losses = tf.square(predicted_outputs-labels)
 
     # losses = tf.square(predicted_outputs-labels)#tf.losses.mean_squared_error(predicted_outputs,labels)
     # mask = tf.sequence_mask(sentence_lengths)
-    timestep_mask = np.full((32,120,5), True)
-    losses = tf.boolean_mask(losses, timestep_mask)
+    # timestep_mask = np.full((32,120,5), True)
+    # losses = tf.boolean_mask(losses, timestep_mask)
 
     loss = tf.reduce_mean(losses)
     # accuracy = tf.reduce_mean(tf.cast(tf.equal(labels, predictions), tf.float32))

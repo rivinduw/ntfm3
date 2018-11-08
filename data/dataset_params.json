@@ -1,7 +1,6 @@
 {
-    "train_size": 4000,
-    "dev_size": 2000,
-    "test_size": 3000,
+    "train_size": 57000,
+    "dev_size": 28000,
+    "test_size": 28000
 
-    "num_oov_buckets": 1
 }

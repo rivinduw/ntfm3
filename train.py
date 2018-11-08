@@ -37,7 +37,7 @@ if __name__ == '__main__':
     json_path = os.path.join(args.data_dir, 'dataset_params.json')
     assert os.path.isfile(json_path), "No json file found at {}, run build_vocab.py".format(json_path)
     params.update(json_path)
-    num_oov_buckets = params.num_oov_buckets # number of buckets for unknown words
+    # num_oov_buckets = params.num_oov_buckets # number of buckets for unknown words
 
     # Check that we are not overwriting some previous experiment
     # Comment these lines if you are developing your model and don't care about overwritting
@@ -63,15 +63,15 @@ if __name__ == '__main__':
     # Create the input data pipeline
     logging.info("Creating the datasets...")
     train_x = load_dataset_from_csv(filenames = ["data/SH1N30s2c.csv"])
-    train_y = load_dataset_from_csv(filenames = ["data/labels/SH1N30s2c.csv"])
+    train_y = load_dataset_from_csv(filenames = ["data/SH1N30s2c.csv"])#["data/labels/SH1N30s2c.csv"])
     # train_labels = load_dataset_from_csv()#load_dataset_from_csv(path_train_labels)
-    eval_x = load_dataset_from_csv(filenames = ["data/SH1N30s2c.csv"])#load_dataset_from_csv(path_eval_sentences)
-    eval_y = load_dataset_from_csv(filenames = ["data/labels/SH1N30s2c.csv"])
+    eval_x = load_dataset_from_csv(filenames = ["data/eval/SH1N30s2c-in.csv"])#load_dataset_from_csv(path_eval_sentences)
+    eval_y = load_dataset_from_csv(filenames = ["data/eval/SH1N30s2c-in.csv"])#["data/eval/SH1N30s2c-out.csv"])
     # eval_labels = load_dataset_from_csv()
 
     # Specify other parameters for the dataset and the model
     params.eval_size = params.dev_size
-    params.buffer_size = 6000#params.train_size # buffer size for shuffling
+    params.buffer_size = 2880#params.train_size # buffer size for shuffling
     params.restore_dir= args.restore_dir#"experiments/best_weights"#None#
     # params.id_pad_word = words.lookup(tf.constant(params.pad_word))
     # params.id_pad_tag = tags.lookup(tf.constant(params.pad_tag))
