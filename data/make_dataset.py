@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import json
 
-def make_dataset(dataset_file="data/SH1N30s2.csv",steps = 120,train_size=57600):
+def make_dataset(dataset_file="data/SH1N30s2.csv",steps = 30,train_size=57600):
 
     print("building dataset")
     data = pd.read_csv(dataset_file,index_col=0)
@@ -27,9 +27,9 @@ def make_dataset(dataset_file="data/SH1N30s2.csv",steps = 120,train_size=57600):
 
     print("writing params to file")
     data_params = {}
-    data_params["train_size"] = len(data_in_train)
-    data_params["dev_size"] = len(data_in_test)
-    data_params["test_size"] = len(data_in_test)
+    data_params["train_size"] = len(data_in_train)-steps*32
+    data_params["dev_size"] = len(data_in_test)-steps*32
+    data_params["test_size"] = len(data_in_test)-steps*32
 
     with open("data/dataset_params.json","w") as f:
         f.write(json.dumps(data_params))

@@ -62,11 +62,11 @@ if __name__ == '__main__':
 
     # Create the input data pipeline
     logging.info("Creating the datasets...")
-    train_x = load_dataset_from_csv(filenames = ["data/train/SH1N30s2-in-120.csv"])#["data/SH1N30s2c.csv"])
-    train_y = load_dataset_from_csv(filenames = ["data/train/SH1N30s2-out-120.csv"])#["data/SH1N30s2c.csv"])#["data/labels/SH1N30s2c.csv"])
+    train_x = load_dataset_from_csv(filenames = ["data/train/SH1N30s2-in-30.csv"])#["data/SH1N30s2c.csv"])
+    train_y = load_dataset_from_csv(filenames = ["data/train/SH1N30s2-out-30.csv"])#["data/SH1N30s2c.csv"])#["data/labels/SH1N30s2c.csv"])
     # train_labels = load_dataset_from_csv()#load_dataset_from_csv(path_train_labels)
-    eval_x = load_dataset_from_csv(filenames = ["data/test/SH1N30s2-in-120.csv"])#["data/eval/SH1N30s2c-in.csv"])#load_dataset_from_csv(path_eval_sentences)
-    eval_y = load_dataset_from_csv(filenames = ["data/test/SH1N30s2-out-120.csv"])#["data/eval/SH1N30s2c-out.csv"])
+    eval_x = load_dataset_from_csv(filenames = ["data/test/SH1N30s2-in-30.csv"])#["data/eval/SH1N30s2c-in.csv"])#load_dataset_from_csv(path_eval_sentences)
+    eval_y = load_dataset_from_csv(filenames = ["data/test/SH1N30s2-out-30.csv"])#["data/eval/SH1N30s2c-out.csv"])
     # eval_labels = load_dataset_from_csv()
 
     # Specify other parameters for the dataset and the model

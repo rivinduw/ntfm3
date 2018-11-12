@@ -88,12 +88,13 @@ def input_fn(mode, inputs, labels, params):
 
 
     dataset = dataset.apply(tf.contrib.data.sliding_window_batch(window_size=120, window_shift=1))
+    #tf.data.Dataset.window(size=window_size, shift=window_shift, stride=window_stride).flat_map(lambda x: x.batch(window.size))
 
     dataset = (dataset
         # .apply(tf.contrib.data.sliding_window_batch(window_size=120, window_shift=1))
         .shuffle(buffer_size=buffer_size)
         .batch(params.batch_size)
-        .prefetch(1)  # make sure you always have one batch ready to serve
+        .prefetch(100)  # make sure you always have one batch ready to serve
     )
 
     # Create initializable iterator from this dataset so that we can reset at each epoch

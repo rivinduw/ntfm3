@@ -4,6 +4,8 @@
 import tensorflow as tf
 import numpy as np
 
+from model.ntfCell import ntfCell
+
 
 def build_model(mode, inputs, params):
     """Compute logits of the model (output distribution)
@@ -27,7 +29,8 @@ def build_model(mode, inputs, params):
 
         # Apply LSTM over the embeddings
         # lstm_cell = tf.nn.rnn_cell.LSTMCell(params.lstm_num_units,use_peepholes=True,cell_clip=3.0)
-        lstm_cell = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(params.lstm_num_units)
+        # lstm_cell = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(params.lstm_num_units)
+        lstm_cell = ntfCell(params.lstm_num_units,use_peepholes=True,cell_clip=3.0)
 
 
         rnn_outputs, rnn_states  = tf.nn.dynamic_rnn(lstm_cell, input_batch, dtype=tf.float32)
@@ -100,7 +103,7 @@ def model_fn(mode, inputs, params, reuse=False):
 
     # Define training step that minimizes the loss with the Adam optimizer
     if is_training:
-        optimizer = tf.train.AdamOptimizer(params.learning_rate)#tf.train.GradientDescentOptimizer(0.001)#
+        optimizer = tf.train.RMSPropOptimizer(0.001)#AdamOptimizer(params.learning_rate)#tf.train.GradientDescentOptimizer(0.001)#
         global_step = tf.train.get_or_create_global_step()
         # train_op = optimizer.minimize(loss, global_step=global_step)
 
