@@ -94,7 +94,7 @@ def input_fn(mode, inputs, labels, params):
         # .apply(tf.contrib.data.sliding_window_batch(window_size=120, window_shift=1))
         .shuffle(buffer_size=buffer_size)
         .batch(params.batch_size)
-        .prefetch(100)  # make sure you always have one batch ready to serve
+        .prefetch(2)  # make sure you always have one batch ready to serve
     )
 
     # Create initializable iterator from this dataset so that we can reset at each epoch
