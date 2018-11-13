@@ -297,7 +297,7 @@ class ntfCell(LayerRNNCell):
     velocity = tf.map_fn(next_v,in_vars, dtype=tf.float32)
     density = tf.map_fn(next_rho,in_vars, dtype=tf.float32)
     next_states.append((density*velocity))
-    next_states.append((density))
+    next_states.append(density)
 
     for g in range(1,len(each_seg)-1):
         # seg = each_seg[g]
