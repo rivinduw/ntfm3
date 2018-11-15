@@ -5,7 +5,7 @@ import tensorflow as tf
 import numpy as np
 
 from model.ntfCell import ntfCell
-
+from tensorflow.python.framework import dtypes
 
 def build_model(mode, inputs, params):
     """Compute logits of the model (output distribution)
@@ -108,6 +108,10 @@ def model_fn(mode, inputs, params, reuse=False):
         # train_op = optimizer.minimize(loss, global_step=global_step)
 
         gradients, variables = zip(*optimizer.compute_gradients(loss))
+        def ClipIfNotBad(grad):
+            return tf.clip_by_value(tf.cond(tf.reduce_sum(tf.cast(tf.math.logical_not(tf.is_finite(grad)),tf.int32))>0,lambda: grad,lambda: tf.ones_like(grad)), -1., 1.)#tf.is_finite(tf.reduce_sum(grad)
+        gradients = [ClipIfNotBad(grad) for grad in gradients]
+        # gradients = [tf.clip_by_value(grad, -1., 1.) for grad in gradients]
         gradients, _ = tf.clip_by_global_norm(gradients, 5.0)
         train_op = optimizer.apply_gradients(zip(gradients, variables))
         #clip by value

@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import json
 
-def make_dataset(dataset_file="data/SH1N30s2.csv",steps = 30,train_size=57600):
+def make_dataset(dataset_file="data/SH1N30s2.csv",steps = 1,train_size=57600):
 
     print("building dataset")
     data = pd.read_csv(dataset_file,index_col=0)
