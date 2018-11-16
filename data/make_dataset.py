@@ -27,9 +27,9 @@ def make_dataset(dataset_file="data/SH1N30s2.csv",steps = 1,train_size=57600):
 
     print("writing params to file")
     data_params = {}
-    data_params["train_size"] = len(data_in_train)-steps*32
-    data_params["dev_size"] = len(data_in_test)-steps*32
-    data_params["test_size"] = len(data_in_test)-steps*32
+    data_params["train_size"] = len(data_in_train)-steps*32*120
+    data_params["dev_size"] = len(data_in_test)-steps*32*120
+    data_params["test_size"] = len(data_in_test)-steps*32*120
 
     with open("data/dataset_params.json","w") as f:
         f.write(json.dumps(data_params))

@@ -12560,3 +12560,162 @@ Use `tf.data.Dataset.window(size=window_size, shift=window_shift, stride=window_
 2018-11-15 14:05:56,038:INFO: - done.
 2018-11-15 14:05:56,038:INFO: Starting training for 10000 epoch(s)
 2018-11-15 14:06:14,803:INFO: Epoch 1/10000
+2018-11-15 17:21:52,376:INFO: Creating the datasets...
+2018-11-15 17:21:57,324:WARNING: From /home/rwee015/Code/Nov18/two/model/input_fn.py:24: CsvDataset.__init__ (from tensorflow.contrib.data.python.ops.readers) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use `tf.data.experimental.CsvDataset(...)`.
+2018-11-15 17:21:57,704:WARNING: From /home/rwee015/anaconda3/envs/venv/lib/python3.6/site-packages/tensorflow/python/util/deprecation.py:488: sliding_window_batch (from tensorflow.contrib.data.python.ops.sliding) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use `tf.data.Dataset.window(size=window_size, shift=window_shift, stride=window_stride).flat_map(lambda x: x.batch(window.size))` instead.
+2018-11-15 17:21:57,779:INFO: - done.
+2018-11-15 17:21:57,779:INFO: Creating the model...
+2018-11-15 17:22:39,505:INFO: - done.
+2018-11-15 17:22:39,505:INFO: Starting training for 10000 epoch(s)
+2018-11-15 17:22:56,672:INFO: Epoch 1/10000
+2018-11-16 00:31:48,182:INFO: Creating the datasets...
+2018-11-16 00:31:49,684:WARNING: From /home/rwee015/Code/Nov18/two/model/input_fn.py:24: CsvDataset.__init__ (from tensorflow.contrib.data.python.ops.readers) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use `tf.data.experimental.CsvDataset(...)`.
+2018-11-16 00:31:49,970:WARNING: From /home/rwee015/anaconda3/envs/venv/lib/python3.6/site-packages/tensorflow/python/util/deprecation.py:488: sliding_window_batch (from tensorflow.contrib.data.python.ops.sliding) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use `tf.data.Dataset.window(size=window_size, shift=window_shift, stride=window_stride).flat_map(lambda x: x.batch(window.size))` instead.
+2018-11-16 00:31:50,010:INFO: - done.
+2018-11-16 00:31:50,010:INFO: Creating the model...
+2018-11-16 00:32:32,177:INFO: - done.
+2018-11-16 00:32:32,177:INFO: Starting training for 10000 epoch(s)
+2018-11-16 00:32:49,974:INFO: Epoch 1/10000
+2018-11-16 00:37:35,618:INFO: Creating the datasets...
+2018-11-16 00:37:40,158:WARNING: From /home/rwee015/Code/Nov18/two/model/input_fn.py:24: CsvDataset.__init__ (from tensorflow.contrib.data.python.ops.readers) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use `tf.data.experimental.CsvDataset(...)`.
+2018-11-16 00:37:40,438:WARNING: From /home/rwee015/anaconda3/envs/venv/lib/python3.6/site-packages/tensorflow/python/util/deprecation.py:488: sliding_window_batch (from tensorflow.contrib.data.python.ops.sliding) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use `tf.data.Dataset.window(size=window_size, shift=window_shift, stride=window_stride).flat_map(lambda x: x.batch(window.size))` instead.
+2018-11-16 00:37:40,477:INFO: - done.
+2018-11-16 00:37:40,478:INFO: Creating the model...
+2018-11-16 00:43:45,873:INFO: Creating the datasets...
+2018-11-16 00:43:47,316:WARNING: From /home/rwee015/Code/Nov18/two/model/input_fn.py:24: CsvDataset.__init__ (from tensorflow.contrib.data.python.ops.readers) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use `tf.data.experimental.CsvDataset(...)`.
+2018-11-16 00:43:47,599:WARNING: From /home/rwee015/anaconda3/envs/venv/lib/python3.6/site-packages/tensorflow/python/util/deprecation.py:488: sliding_window_batch (from tensorflow.contrib.data.python.ops.sliding) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use `tf.data.Dataset.window(size=window_size, shift=window_shift, stride=window_stride).flat_map(lambda x: x.batch(window.size))` instead.
+2018-11-16 00:43:47,640:INFO: - done.
+2018-11-16 00:43:47,640:INFO: Creating the model...
+2018-11-16 00:45:37,369:INFO: Creating the datasets...
+2018-11-16 00:45:38,811:WARNING: From /home/rwee015/Code/Nov18/two/model/input_fn.py:24: CsvDataset.__init__ (from tensorflow.contrib.data.python.ops.readers) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use `tf.data.experimental.CsvDataset(...)`.
+2018-11-16 00:45:39,092:WARNING: From /home/rwee015/anaconda3/envs/venv/lib/python3.6/site-packages/tensorflow/python/util/deprecation.py:488: sliding_window_batch (from tensorflow.contrib.data.python.ops.sliding) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use `tf.data.Dataset.window(size=window_size, shift=window_shift, stride=window_stride).flat_map(lambda x: x.batch(window.size))` instead.
+2018-11-16 00:45:39,134:INFO: - done.
+2018-11-16 00:45:39,134:INFO: Creating the model...
+2018-11-16 00:46:21,375:INFO: - done.
+2018-11-16 00:46:21,375:INFO: Starting training for 10000 epoch(s)
+2018-11-16 00:46:38,399:INFO: Epoch 1/10000
+2018-11-16 00:49:11,528:INFO: Creating the datasets...
+2018-11-16 00:49:15,449:WARNING: From /home/rwee015/Code/Nov18/two/model/input_fn.py:24: CsvDataset.__init__ (from tensorflow.contrib.data.python.ops.readers) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use `tf.data.experimental.CsvDataset(...)`.
+2018-11-16 00:49:15,732:WARNING: From /home/rwee015/anaconda3/envs/venv/lib/python3.6/site-packages/tensorflow/python/util/deprecation.py:488: sliding_window_batch (from tensorflow.contrib.data.python.ops.sliding) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use `tf.data.Dataset.window(size=window_size, shift=window_shift, stride=window_stride).flat_map(lambda x: x.batch(window.size))` instead.
+2018-11-16 00:49:15,784:INFO: - done.
+2018-11-16 00:49:15,784:INFO: Creating the model...
+2018-11-16 00:49:58,158:INFO: - done.
+2018-11-16 00:49:58,158:INFO: Starting training for 10000 epoch(s)
+2018-11-16 00:50:15,337:INFO: Epoch 1/10000
+2018-11-16 00:51:34,339:INFO: Creating the datasets...
+2018-11-16 00:51:38,033:WARNING: From /home/rwee015/Code/Nov18/two/model/input_fn.py:24: CsvDataset.__init__ (from tensorflow.contrib.data.python.ops.readers) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use `tf.data.experimental.CsvDataset(...)`.
+2018-11-16 00:51:38,318:WARNING: From /home/rwee015/anaconda3/envs/venv/lib/python3.6/site-packages/tensorflow/python/util/deprecation.py:488: sliding_window_batch (from tensorflow.contrib.data.python.ops.sliding) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use `tf.data.Dataset.window(size=window_size, shift=window_shift, stride=window_stride).flat_map(lambda x: x.batch(window.size))` instead.
+2018-11-16 00:51:38,358:INFO: - done.
+2018-11-16 00:51:38,359:INFO: Creating the model...
+2018-11-16 00:52:20,656:INFO: - done.
+2018-11-16 00:52:20,656:INFO: Starting training for 10000 epoch(s)
+2018-11-16 00:52:37,658:INFO: Epoch 1/10000
+2018-11-16 00:53:53,049:INFO: Creating the datasets...
+2018-11-16 00:53:57,107:WARNING: From /home/rwee015/Code/Nov18/two/model/input_fn.py:24: CsvDataset.__init__ (from tensorflow.contrib.data.python.ops.readers) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use `tf.data.experimental.CsvDataset(...)`.
+2018-11-16 00:53:57,392:WARNING: From /home/rwee015/anaconda3/envs/venv/lib/python3.6/site-packages/tensorflow/python/util/deprecation.py:488: sliding_window_batch (from tensorflow.contrib.data.python.ops.sliding) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use `tf.data.Dataset.window(size=window_size, shift=window_shift, stride=window_stride).flat_map(lambda x: x.batch(window.size))` instead.
+2018-11-16 00:53:57,439:INFO: - done.
+2018-11-16 00:53:57,439:INFO: Creating the model...
+2018-11-16 00:54:39,205:INFO: - done.
+2018-11-16 00:54:39,205:INFO: Starting training for 10000 epoch(s)
+2018-11-16 00:54:56,239:INFO: Epoch 1/10000
+2018-11-16 11:04:37,323:INFO: Creating the datasets...
+2018-11-16 11:04:41,821:WARNING: From /home/rwee015/Code/Nov18/two/model/input_fn.py:24: CsvDataset.__init__ (from tensorflow.contrib.data.python.ops.readers) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use `tf.data.experimental.CsvDataset(...)`.
+2018-11-16 11:04:42,115:WARNING: From /home/rwee015/anaconda3/envs/venv/lib/python3.6/site-packages/tensorflow/python/util/deprecation.py:488: sliding_window_batch (from tensorflow.contrib.data.python.ops.sliding) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use `tf.data.Dataset.window(size=window_size, shift=window_shift, stride=window_stride).flat_map(lambda x: x.batch(window.size))` instead.
+2018-11-16 11:04:42,154:INFO: - done.
+2018-11-16 11:04:42,155:INFO: Creating the model...
+2018-11-16 11:05:21,997:INFO: - done.
+2018-11-16 11:05:21,998:INFO: Starting training for 10000 epoch(s)
+2018-11-16 11:05:38,406:INFO: Epoch 1/10000
+2018-11-16 11:14:40,460:INFO: Creating the datasets...
+2018-11-16 11:14:44,850:WARNING: From /home/rwee015/Code/Nov18/two/model/input_fn.py:24: CsvDataset.__init__ (from tensorflow.contrib.data.python.ops.readers) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use `tf.data.experimental.CsvDataset(...)`.
+2018-11-16 11:14:45,149:WARNING: From /home/rwee015/anaconda3/envs/venv/lib/python3.6/site-packages/tensorflow/python/util/deprecation.py:488: sliding_window_batch (from tensorflow.contrib.data.python.ops.sliding) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use `tf.data.Dataset.window(size=window_size, shift=window_shift, stride=window_stride).flat_map(lambda x: x.batch(window.size))` instead.
+2018-11-16 11:14:45,250:INFO: - done.
+2018-11-16 11:14:45,250:INFO: Creating the model...
+2018-11-16 11:15:25,807:INFO: - done.
+2018-11-16 11:15:25,807:INFO: Starting training for 10000 epoch(s)
+2018-11-16 11:15:42,171:INFO: Epoch 1/10000
+2018-11-16 11:21:19,323:INFO: Creating the datasets...
+2018-11-16 11:21:23,647:WARNING: From /home/rwee015/Code/Nov18/two/model/input_fn.py:24: CsvDataset.__init__ (from tensorflow.contrib.data.python.ops.readers) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use `tf.data.experimental.CsvDataset(...)`.
+2018-11-16 11:21:23,944:WARNING: From /home/rwee015/anaconda3/envs/venv/lib/python3.6/site-packages/tensorflow/python/util/deprecation.py:488: sliding_window_batch (from tensorflow.contrib.data.python.ops.sliding) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use `tf.data.Dataset.window(size=window_size, shift=window_shift, stride=window_stride).flat_map(lambda x: x.batch(window.size))` instead.
+2018-11-16 11:21:23,996:INFO: - done.
+2018-11-16 11:21:23,997:INFO: Creating the model...
+2018-11-16 11:22:03,779:INFO: - done.
+2018-11-16 11:22:03,779:INFO: Starting training for 10000 epoch(s)
+2018-11-16 11:22:20,140:INFO: Epoch 1/10000
+2018-11-16 11:26:37,755:INFO: Creating the datasets...
+2018-11-16 11:26:41,753:WARNING: From /home/rwee015/Code/Nov18/two/model/input_fn.py:24: CsvDataset.__init__ (from tensorflow.contrib.data.python.ops.readers) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use `tf.data.experimental.CsvDataset(...)`.
+2018-11-16 11:26:42,031:WARNING: From /home/rwee015/anaconda3/envs/venv/lib/python3.6/site-packages/tensorflow/python/util/deprecation.py:488: sliding_window_batch (from tensorflow.contrib.data.python.ops.sliding) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use `tf.data.Dataset.window(size=window_size, shift=window_shift, stride=window_stride).flat_map(lambda x: x.batch(window.size))` instead.
+2018-11-16 11:26:42,071:INFO: - done.
+2018-11-16 11:26:42,071:INFO: Creating the model...
+2018-11-16 11:27:22,687:INFO: - done.
+2018-11-16 11:27:22,687:INFO: Starting training for 10000 epoch(s)
+2018-11-16 11:27:39,241:INFO: Epoch 1/10000
+2018-11-16 11:29:21,101:INFO: Creating the datasets...
+2018-11-16 11:29:25,507:WARNING: From /home/rwee015/Code/Nov18/two/model/input_fn.py:24: CsvDataset.__init__ (from tensorflow.contrib.data.python.ops.readers) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use `tf.data.experimental.CsvDataset(...)`.
+2018-11-16 11:29:25,797:WARNING: From /home/rwee015/anaconda3/envs/venv/lib/python3.6/site-packages/tensorflow/python/util/deprecation.py:488: sliding_window_batch (from tensorflow.contrib.data.python.ops.sliding) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use `tf.data.Dataset.window(size=window_size, shift=window_shift, stride=window_stride).flat_map(lambda x: x.batch(window.size))` instead.
+2018-11-16 11:29:25,849:INFO: - done.
+2018-11-16 11:29:25,849:INFO: Creating the model...
+2018-11-16 11:30:59,840:INFO: Creating the datasets...
+2018-11-16 11:31:01,254:WARNING: From /home/rwee015/Code/Nov18/two/model/input_fn.py:24: CsvDataset.__init__ (from tensorflow.contrib.data.python.ops.readers) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use `tf.data.experimental.CsvDataset(...)`.
+2018-11-16 11:31:01,528:WARNING: From /home/rwee015/anaconda3/envs/venv/lib/python3.6/site-packages/tensorflow/python/util/deprecation.py:488: sliding_window_batch (from tensorflow.contrib.data.python.ops.sliding) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use `tf.data.Dataset.window(size=window_size, shift=window_shift, stride=window_stride).flat_map(lambda x: x.batch(window.size))` instead.
+2018-11-16 11:31:01,591:INFO: - done.
+2018-11-16 11:31:01,591:INFO: Creating the model...
+2018-11-16 11:31:41,519:INFO: - done.
+2018-11-16 11:31:41,519:INFO: Starting training for 10000 epoch(s)
+2018-11-16 11:31:58,248:INFO: Epoch 1/10000

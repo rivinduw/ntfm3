@@ -265,8 +265,8 @@ class ntfCell(LayerRNNCell):
             x0,x1,x2,c1 = in_vars
             current_velocity = velocity_fn(x1)
             current_density = x1[1]
-            seg_len = c1[5]*tf.constant(1000.0,name="seg_len_v")*
-            lane_num = c1[6]*tf.constant(3.0,name="lane_num_v")*
+            seg_len = c1[5]#*tf.constant(1000.0,name="seg_len_v")*
+            lane_num = c1[6]#*tf.constant(3.0,name="lane_num_v")*
             T = c1[4]#tf.constant(1.,name="T_v")*
             tau = c1[7] #tf.constant(120.,name="tau")*
             nu = c1[8] #tf.constant(35.,name="nu")*
@@ -326,8 +326,8 @@ class ntfCell(LayerRNNCell):
     # vs = sigmoid(vs)
         # gradients, variables = zip(*optimizer.compute_gradients(loss))
         # gradients, _ = tf.clip_by_global_norm(gradients, 5.0)
-
-    m = tf.layers.dense(next_states,self._num_units,activation='relu')
+        # 25%| 442/1799 [2:37:54<8:03:51, 21.39s/it, loss=2774.847]
+    m = tf.layers.dense(next_states,self._num_units,activation='tanh')
     # m = tf.layers.dense(array_ops.concat([next_states, m],1),self._num_units)
 
 

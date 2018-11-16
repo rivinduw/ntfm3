@@ -77,14 +77,18 @@ def model_fn(mode, inputs, params, reuse=False):
 
     # Define loss and accuracy (we need to apply a mask to account for padding)
     # losses = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels)
-    print(labels.shape)
-    feature_mask = np.full((32,120,90), False)
-    feature_mask[:,:,20*2:25*2:2] = True
+    # print(labels.shape)
+    # feature_mask = np.full((32,120,90), False)
+    # feature_mask[:,:,:]=True#20*2:25*2:2] = True
     # losses = tf.boolean_mask(losses, mask)
     # predicted_outputs = tf.reshape(tf.boolean_mask(predicted_outputs, feature_mask),[32,120,5])
     # labels = tf.reshape(tf.boolean_mask(labels, feature_mask),[32,120,5])
-    predicted_outputs = tf.boolean_mask(predicted_outputs, feature_mask)
-    labels = tf.boolean_mask(labels, feature_mask)
+
+
+    # predicted_outputs = tf.boolean_mask(predicted_outputs, feature_mask)
+    # labels = tf.boolean_mask(labels, feature_mask)
+
+
     losses = tf.square(predicted_outputs-labels)
 
     # losses = tf.square(predicted_outputs-labels)#tf.losses.mean_squared_error(predicted_outputs,labels)
@@ -96,23 +100,28 @@ def model_fn(mode, inputs, params, reuse=False):
     # accuracy = tf.reduce_mean(tf.cast(tf.equal(labels, predictions), tf.float32))
     TINY = 1e-6
     mape = tf.reduce_mean(
-    tf.clip_by_value(
-    tf.abs((labels - predicted_outputs)/ (labels+TINY))
-    ,0,1))
+        tf.clip_by_value(
+        tf.abs((labels - predicted_outputs)/ (labels+TINY))
+        ,0,1))
     accuracy = 1 - mape
 
     # Define training step that minimizes the loss with the Adam optimizer
     if is_training:
-        optimizer = tf.train.RMSPropOptimizer(0.001)#AdamOptimizer(params.learning_rate)#tf.train.GradientDescentOptimizer(0.001)#
+        optimizer = tf.train.RMSPropOptimizer(0.0005)#AdamOptimizer(params.learning_rate)#tf.train.GradientDescentOptimizer(0.001)#
         global_step = tf.train.get_or_create_global_step()
         # train_op = optimizer.minimize(loss, global_step=global_step)
 
         gradients, variables = zip(*optimizer.compute_gradients(loss))
         def ClipIfNotBad(grad):
-            return tf.clip_by_value(tf.cond(tf.reduce_sum(tf.cast(tf.math.logical_not(tf.is_finite(grad)),tf.int32))>0,lambda: grad,lambda: tf.ones_like(grad)), -1., 1.)#tf.is_finite(tf.reduce_sum(grad)
-        gradients = [ClipIfNotBad(grad) for grad in gradients]
+            return tf.where(tf.is_finite(grad), grad, 0.5*tf.ones_like(grad))
+            # return tf.where(tf.is_nan(grad), tf.zeros_like(grad), grad)
+            #tf.cond(tf.reduce_sum(tf.cast(tf.math.logical_not(tf.is_finite(grad)),tf.float32))>0,lambda: grad,lambda: 0.5*tf.ones_like(grad))#tf.is_finite(tf.reduce_sum(grad)
+        gradients = [tf.clip_by_value(ClipIfNotBad(grad), -1., 1.) for grad in gradients]
         # gradients = [tf.clip_by_value(grad, -1., 1.) for grad in gradients]
-        gradients, _ = tf.clip_by_global_norm(gradients, 5.0)
+
+        # gradients = tf.where(tf.is_nan(gradients), tf.zeros_like(gradients), gradients)
+
+        gradients, _ = tf.clip_by_global_norm(gradients, 5.0) #
         train_op = optimizer.apply_gradients(zip(gradients, variables))
         #clip by value
         # grads = optimizer.compute_gradients(loss)
