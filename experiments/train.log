@@ -13405,27 +13405,3 @@ It was originally created here:
 2018-11-22 16:25:25,582:INFO: - done.
 2018-11-22 16:25:25,582:INFO: Starting training for 10000 epoch(s)
 2018-11-22 16:25:27,434:INFO: Epoch 1/10000
-2018-11-22 16:36:14,257:INFO: Creating the datasets...
-2018-11-22 16:36:16,086:WARNING: From /home/rwee015/Code/Nov18/two/model/input_fn.py:24: CsvDataset.__init__ (from tensorflow.contrib.data.python.ops.readers) is deprecated and will be removed in a future version.
-Instructions for updating:
-Use `tf.data.experimental.CsvDataset(...)`.
-2018-11-22 16:36:16,415:WARNING: From /home/rwee015/Code/Nov18/two/venv/lib/python3.6/site-packages/tensorflow/python/util/deprecation.py:488: sliding_window_batch (from tensorflow.contrib.data.python.ops.sliding) is deprecated and will be removed in a future version.
-Instructions for updating:
-Use `tf.data.Dataset.window(size=window_size, shift=window_shift, stride=window_stride).flat_map(lambda x: x.batch(window.size))` instead.
-2018-11-22 16:36:16,462:INFO: - done.
-2018-11-22 16:36:16,462:INFO: Creating the model...
-2018-11-22 16:36:18,406:INFO: - done.
-2018-11-22 16:36:18,406:INFO: Starting training for 10000 epoch(s)
-2018-11-22 16:36:19,386:INFO: Epoch 1/10000
-2018-11-22 16:40:18,604:INFO: Creating the datasets...
-2018-11-22 16:40:20,327:WARNING: From /home/rwee015/Code/Nov18/two/model/input_fn.py:24: CsvDataset.__init__ (from tensorflow.contrib.data.python.ops.readers) is deprecated and will be removed in a future version.
-Instructions for updating:
-Use `tf.data.experimental.CsvDataset(...)`.
-2018-11-22 16:40:20,641:WARNING: From /home/rwee015/Code/Nov18/two/venv/lib/python3.6/site-packages/tensorflow/python/util/deprecation.py:488: sliding_window_batch (from tensorflow.contrib.data.python.ops.sliding) is deprecated and will be removed in a future version.
-Instructions for updating:
-Use `tf.data.Dataset.window(size=window_size, shift=window_shift, stride=window_stride).flat_map(lambda x: x.batch(window.size))` instead.
-2018-11-22 16:40:20,686:INFO: - done.
-2018-11-22 16:40:20,686:INFO: Creating the model...
-2018-11-22 16:40:22,520:INFO: - done.
-2018-11-22 16:40:22,520:INFO: Starting training for 10000 epoch(s)
-2018-11-22 16:40:23,367:INFO: Epoch 1/10000
