@@ -5,6 +5,7 @@ import tensorflow as tf
 import numpy as np
 
 from model.ntfCell import ntfCell
+from model.ntfCell import LSTMCell2
 from tensorflow.python.framework import dtypes
 
 def build_model(mode, inputs, params):
@@ -30,7 +31,8 @@ def build_model(mode, inputs, params):
         # Apply LSTM over the embeddings
         # lstm_cell = tf.nn.rnn_cell.LSTMCell(params.lstm_num_units,use_peepholes=True,cell_clip=3.0)
         # lstm_cell = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(params.lstm_num_units)
-        lstm_cell = ntfCell(params.lstm_num_units,use_peepholes=True,cell_clip=3.0)
+        lstm_cell = ntfCell(params.lstm_num_units)#,use_peepholes=True,cell_clip=3.0)
+        # lstm_cell = LSTMCell2(params.lstm_num_units)#,use_peepholes=True,cell_clip=3.0)
 
 
         rnn_outputs, rnn_states  = tf.nn.dynamic_rnn(lstm_cell, input_batch, dtype=tf.float32)
@@ -107,16 +109,16 @@ def model_fn(mode, inputs, params, reuse=False):
 
     # Define training step that minimizes the loss with the Adam optimizer
     if is_training:
-        optimizer = tf.train.RMSPropOptimizer(0.0005)#AdamOptimizer(params.learning_rate)#tf.train.GradientDescentOptimizer(0.001)#
+        optimizer = tf.train.RMSPropOptimizer(0.00001)#AdamOptimizer(params.learning_rate)#tf.train.GradientDescentOptimizer(0.001)#
         global_step = tf.train.get_or_create_global_step()
         # train_op = optimizer.minimize(loss, global_step=global_step)
 
         gradients, variables = zip(*optimizer.compute_gradients(loss))
-        def ClipIfNotBad(grad):
-            return tf.where(tf.is_finite(grad), grad, 0.5*tf.ones_like(grad))
+        # def ClipIfNotBad(grad):
+        #     return tf.where(tf.is_finite(grad), grad, 0.5*tf.ones_like(grad))
             # return tf.where(tf.is_nan(grad), tf.zeros_like(grad), grad)
             #tf.cond(tf.reduce_sum(tf.cast(tf.math.logical_not(tf.is_finite(grad)),tf.float32))>0,lambda: grad,lambda: 0.5*tf.ones_like(grad))#tf.is_finite(tf.reduce_sum(grad)
-        gradients = [tf.clip_by_value(ClipIfNotBad(grad), -1., 1.) for grad in gradients]
+        # gradients = [tf.clip_by_value(ClipIfNotBad(grad), -1., 1.) for grad in gradients]
         # gradients = [tf.clip_by_value(grad, -1., 1.) for grad in gradients]
 
         # gradients = tf.where(tf.is_nan(gradients), tf.zeros_like(gradients), gradients)
