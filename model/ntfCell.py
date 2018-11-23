@@ -280,7 +280,7 @@ class ntfCell(LayerRNNCell):
 
     current_volume = unscaled_inputs[:,:,0]
     current_density = unscaled_inputs[:,:,1]
-    T = eq_vars[:,:,4]+ tf.constant(1.,name="v_f")#tf.constant(1.0,name="T")*
+    T = eq_vars[:,:,4]+ tf.constant(1.,name="T")#tf.constant(1.0,name="T")*
     seg_len = eq_vars[:,:,5]+tf.constant(1000.0,name="seg_len")#*
     lane_num = eq_vars[:,:,6]+tf.constant(3.0,name="lane_num")#*
     flow0 = prev_segs[:,:,0]

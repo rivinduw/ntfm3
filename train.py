@@ -72,11 +72,7 @@ if __name__ == '__main__':
     # Specify other parameters for the dataset and the model
     params.eval_size = params.dev_size
     params.buffer_size = 2880#params.train_size # buffer size for shuffling
-<<<<<<< HEAD
-    params.restore_dir= "experiments/last_weights"#None#args.restore_dir#"experiments/best_weights"#None#
-=======
-    params.restore_dir= None#args.restore_dir#"experiments/best_weights"#None#
->>>>>>> aa211ba414d3516c07f9c84a5701cc3cf6468588
+    params.restore_dir= None#"experiments/last_weights"#None#args.restore_dir#"experiments/best_weights"#None#
     # params.id_pad_word = words.lookup(tf.constant(params.pad_word))
     # params.id_pad_tag = tags.lookup(tf.constant(params.pad_tag))
 
