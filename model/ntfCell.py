@@ -104,29 +104,52 @@ class ntfCell(LayerRNNCell):
           if state_is_tuple else 2 * num_units)
       self._output_size = num_units
     # max_vals = [46,24,136,23.8333,136,23.8333,175,19.2778,97,27.5,63,13.6667,454,24.5,899,37.25,850,67,1262,57.8571,2064,56.9231,87,55.6667,804,66,1362,67.3333,472,83.6667,560,68.3333,563,74.1667,563,74.1667,952,70.8333,437,60.9583,1275,61.2222,884,78.3333,394,80.5,394,80.5,189,84,325,49.4167,616,44.5,651,60,718,59,1546,54.1667,1546,60.1667,796,77.25,1356,67.3333,772,69.1667,162,80.6667,162,80.6667,485,55,307,56.525,293,51.75,271,56.65,308,56.65,299,59.2857,250,64.8,126,94,126,94]
-    max_vals = [ 1434.74750643,    18.30139494,  1429.74008344,    17.48155306,\
-            1426.702155  ,    17.99523301,  1424.37520692,    18.08119266,\
-            1422.62415457,    18.07461953,  1421.35611114,    18.05625932,\
-            1420.45478819,    18.04031743,  1419.90337358,    18.03026502,\
-            1419.52384034,    18.02317216,  1419.20911214,    18.01715104,\
-            1418.95221455,    18.01225176,  1418.70013052,    18.00769527,\
-            1418.43693812,    18.00269478,  1418.14779313,    17.99711155,\
-            1417.81579209,    17.99103296,  1417.44840569,    17.98407964,\
-            1417.06875011,    17.97687155,  1416.64375747,    17.96918448,\
-            1416.22762397,    17.96095446,  1415.7796153 ,    17.95286074,\
-            1415.32413225,    17.9440461 ,  1414.86735724,    17.93563274,\
-            1414.38253656,    17.92676427,  1413.92731718,    17.91788703,\
-            1413.4421255 ,    17.90913208,  1412.97392148,    17.89990094,\
-            1412.50099183,    17.89137473,  1412.01763006,    17.88237556,\
-            1411.56109772,    17.8736535 ,  1411.08129417,    17.86500379,\
-            1410.62835788,    17.85608305,  1410.16940487,    17.84781971,\
-            1409.70701819,    17.8391717 ,  1409.26995687,    17.83088746,\
-            1408.81330982,    17.82266766,  1408.3853254 ,    17.81425268,\
-            1407.95186431,    17.8064622 ,  1407.51721571,    17.79833338,\
-            1407.10663076,    17.79058055,  1406.67835256,    17.78288625,\
-            1406.27857516,    17.77504053,  1405.87307208,    17.76776747,\
-            1405.46838831,    17.76017997,  1405.08484042,    17.7529909 ,\
-            1404.7018785 ,    17.75292314]
+    max_vals = [ 4462.11559904,    53.7349221 ,  4423.03294541,    73.53982445,\
+        4327.15055338,    89.10455954,  4251.69290532,    95.81514881,\
+        4234.36138235,    92.84096884,  4222.62811687,    88.3101285 ,\
+        4210.2520675 ,    85.26524715,  4199.48273431,    83.25366832,\
+        4190.6376384 ,    81.86985297,  4183.43948374,    80.87742503,\
+        4177.52964524,    80.1290634 ,  4172.54858902,    79.53841533,\
+        4168.19515141,    79.04591297,  4164.22763872,    78.61642646,\
+        4160.505622  ,    78.22611144,  4156.94038752,    77.86309195,\
+        4155.06841303,    77.67906958,  4153.9971503 ,    77.5714677 ,\
+        4152.54931464,    77.42943482,  4150.77507396,    77.25851049,\
+        4148.7331974 ,    77.06446511,  4146.47278869,    76.85389496,\
+        4144.05415523,    76.63130488,  4141.51298844,    76.40176305,\
+        4138.88609777,    76.16900624,  4136.20437434,    75.9356977 ,\
+        4133.49762237,    75.70367378,  4130.77175486,    75.47414447,\
+        4128.03608594,    75.24784166,  4125.31657027,    75.02634983,\
+        4122.60359952,    74.80922699,  4119.90433693,    74.59603951,\
+        4117.22659536,    74.38842582,  4114.56360709,    74.18416312,\
+        4111.92018099,    73.98533335,  4109.30049486,    73.78988858,\
+        4106.69348445,    73.59862985,  4104.10875128,    73.41160488,\
+        4101.55028946,    73.22803105,  4099.00974622,    73.04797625,\
+        4096.48912851,    72.87159771,  4093.98995057,    72.699158  ,\
+        4091.51329988,    72.53005523,  4089.05995335,    72.36400068,\
+        4086.65098963,    72.10656196]
+    # [ 1434.74750643,    18.30139494,  1429.74008344,    17.48155306,\
+    #         1426.702155  ,    17.99523301,  1424.37520692,    18.08119266,\
+    #         1422.62415457,    18.07461953,  1421.35611114,    18.05625932,\
+    #         1420.45478819,    18.04031743,  1419.90337358,    18.03026502,\
+    #         1419.52384034,    18.02317216,  1419.20911214,    18.01715104,\
+    #         1418.95221455,    18.01225176,  1418.70013052,    18.00769527,\
+    #         1418.43693812,    18.00269478,  1418.14779313,    17.99711155,\
+    #         1417.81579209,    17.99103296,  1417.44840569,    17.98407964,\
+    #         1417.06875011,    17.97687155,  1416.64375747,    17.96918448,\
+    #         1416.22762397,    17.96095446,  1415.7796153 ,    17.95286074,\
+    #         1415.32413225,    17.9440461 ,  1414.86735724,    17.93563274,\
+    #         1414.38253656,    17.92676427,  1413.92731718,    17.91788703,\
+    #         1413.4421255 ,    17.90913208,  1412.97392148,    17.89990094,\
+    #         1412.50099183,    17.89137473,  1412.01763006,    17.88237556,\
+    #         1411.56109772,    17.8736535 ,  1411.08129417,    17.86500379,\
+    #         1410.62835788,    17.85608305,  1410.16940487,    17.84781971,\
+    #         1409.70701819,    17.8391717 ,  1409.26995687,    17.83088746,\
+    #         1408.81330982,    17.82266766,  1408.3853254 ,    17.81425268,\
+    #         1407.95186431,    17.8064622 ,  1407.51721571,    17.79833338,\
+    #         1407.10663076,    17.79058055,  1406.67835256,    17.78288625,\
+    #         1406.27857516,    17.77504053,  1405.87307208,    17.76776747,\
+    #         1405.46838831,    17.76017997,  1405.08484042,    17.7529909 ,\
+    #         1404.7018785 ,    17.75292314]
     self._max_values=tf.convert_to_tensor(max_vals)
 
 
@@ -284,15 +307,15 @@ class ntfCell(LayerRNNCell):
     # vols, occs = array_ops.split(value=unscaled_inputs, num_or_size_splits=2,axis=2)#self._n_seg, axis=1)
     # vols = tf.squeeze(vols)
     # occs = tf.squeeze(occs)
-    # occs = tf.Print(occs,[occs,tf.shape(occs)],"occs")
+    #m = tf.Print(m,[m,tf.shape(m)],"m")
 
     ntf_matrix = math_ops.matmul(m, self._kernel_context)
-    ntf_matrix = sigmoid(nn_ops.bias_add(ntf_matrix, self._bias_context))
+    ntf_matrix = sigmoid(nn_ops.bias_add(ntf_matrix, self._bias_context))#)
 
     boundry,ntf_matrix = array_ops.split(value=ntf_matrix, num_or_size_splits=[4,self._num_var], axis=1)#*self._n_seg
     # boundry = tf.Print(boundry,[boundry,tf.shape(boundry)],"boundry")#[32 4]
     boundry = tf.reshape(boundry,[-1,2,2])#32,2,2
-    boundry = tf.multiply(boundry,[1434.,18.3])#tf.multiply(boundry,[tf.constant(self._max_values[0]),tf.constant(self._max_values[1])])
+    boundry = tf.multiply(boundry,[10000.,100.])#tf.multiply(boundry,[tf.constant(self._max_values[0]),tf.constant(self._max_values[1])])
     boundry = tf.Print(boundry,[boundry,tf.math.reduce_mean(boundry)],"boundry",summarize=10,first_n=50)
     # boundry = tf.Print(boundry,[boundry,tf.shape(boundry)],"boundry",summarize=12,first_n=50)
     contexts = ntf_matrix#array_ops.split(value=ntf_matrix, num_or_size_splits=self._n_seg, axis=1)
@@ -335,19 +358,19 @@ class ntfCell(LayerRNNCell):
     nu = tf.constant(35.,name="nu")#eq_vars[:,:,8]*tf.constant(100.,name="nu")#+tf.constant(1.0)# + tf.constant(35.,name="nu")#*
     kappa = tf.constant(13.,name="kappa")#eq_vars[:,:,9]*tf.constant(100.,name="kappa")#+tf.constant(1.0)# + tf.constant(13.,name="kappa")#*
     delta = tf.constant(1.4,name="delta")#eq_vars[:,:,10]*tf.constant(10.,name="delta")#+tf.constant(1.0)# + tf.constant(1.4,name="delta")#*
-    v_f = eq_vars[:,0,0:1]*tf.constant(200.,name="v_f")#+tf.constant(1.0)# + tf.constant(120.,name="v_f")#*
+    v_f = tf.constant(20.,name="v_min")+eq_vars[:,0,0:1]*tf.constant(200.,name="v_f")#+tf.constant(1.0)# + tf.constant(120.,name="v_f")#*
     v_f = tf.Print(v_f,[v_f,tf.math.reduce_mean(v_f)],"v_f",summarize=10,first_n=10)
-    a = eq_vars[:,2,0:1]*tf.constant(2.0,name="a")#tf.clip_by_value(eq_vars[:,:,2]*tf.constant(2.0,name="a"),0.5,1.6)#tf.clip_by_value(eq_vars[:,:,2]+ tf.constant(1.,name="a"),0.5,1.5)#
+    a = eq_vars[:,2,0:1]*tf.constant(3.0,name="a")#tf.clip_by_value(eq_vars[:,:,2]*tf.constant(2.0,name="a"),0.5,1.6)#tf.clip_by_value(eq_vars[:,:,2]+ tf.constant(1.,name="a"),0.5,1.5)#
     a = tf.Print(a,[a,tf.math.reduce_mean(a)],"a",summarize=10,first_n=10)
-    p_cr = eq_vars[:,1,0:1]*tf.constant(90.0,name="pcr")#+tf.constant(1.0)# + tf.constant(33.5,name="p_cr")#
+    p_cr = eq_vars[:,1,0:1]*tf.constant(200.0,name="pcr")#+tf.constant(1.0)# + tf.constant(33.5,name="p_cr")#
     p_cr = tf.Print(p_cr,[p_cr,tf.math.reduce_mean(p_cr)],"p_cr",summarize=10,first_n=10)
 
     with tf.name_scope("next_density"):
         next_rho =  current_density + tf.multiply(tf.div(T,tf.multiply(seg_len,lane_num)),(prev_volume - current_volume + r_in - r_out))
-        # next_rho = tf.Print(next_rho,[next_rho,tf.math.reduce_max(next_rho)],"next_rho",summarize=10,first_n=10)#[32 45]
+        # next_rho = tf.Print(next_rho,[next_rho,tf.math.reduce_max(next_rho)],"ne`xt_rho",summarize=10,first_n=10)#[32 45]
 
     with tf.name_scope("next_velocity"):
-        stat_speed =  v_f * tf.exp( tf.div(-1.0,a) * (tf.pow(tf.div(current_density,p_cr),a)) )
+        stat_speed =  tf.multiply( v_f, tf.exp( (tf.multiply(tf.div(-1.0,a),tf.math.pow(tf.divide(current_density,p_cr),a)))))
         stat_speed = tf.Print(stat_speed,[stat_speed,tf.math.reduce_max(stat_speed)],"stat_speed",summarize=10,first_n=10)
 
         next_vel = current_velocity + ( (T/tau) * (stat_speed - current_velocity) )\

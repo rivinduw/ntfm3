@@ -44,8 +44,8 @@ def build_model(mode, inputs, params):
         # final_projection = lambda x: tf.layers.dense(x,1)# params.rnn_output_size)
         # apply projection to every timestep.
         # predicted_outputs = tf.map_fn(final_projection, rnn_outputs)
-        predicted_outputs =  tf.layers.dense(rnn_outputs, 256,activation='relu')
-        predicted_outputs =  tf.layers.dense(predicted_outputs, params.rnn_output_size)
+        #predicted_outputs =  tf.layers.dense(rnn_outputs, 256,activation='relu')
+        predicted_outputs =  tf.layers.dense(rnn_outputs, params.rnn_output_size)
 
     else:
         raise NotImplementedError("Unknown model version: {}".format(params.model_version))
@@ -123,7 +123,7 @@ def model_fn(mode, inputs, params, reuse=False):
 
         # gradients = tf.where(tf.is_nan(gradients), tf.zeros_like(gradients), gradients)
 
-        gradients, _ = tf.clip_by_global_norm(gradients, 5.0) #
+        gradients, _ = tf.clip_by_global_norm(gradients, 3.0) #
         train_op = optimizer.apply_gradients(zip(gradients, variables))
         #clip by value
         # grads = optimizer.compute_gradients(loss)
