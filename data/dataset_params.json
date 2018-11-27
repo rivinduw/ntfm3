@@ -1,1 +1,1 @@
-{"train_size": 53759, "dev_size": 24959, "test_size": 24959}
+{"train_size": 10000, "dev_size": 5000, "test_size": 5000}

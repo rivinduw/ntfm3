@@ -20,7 +20,7 @@ class ntfCell(LayerRNNCell):
                initializer=None, num_proj=None, proj_clip=None,
                num_unit_shards=None, num_proj_shards=None,
                forget_bias=1.0, state_is_tuple=True,
-               activation=None, reuse=None, name=None, n_seg=45,num_var = 3, dtype=None, **kwargs):
+               activation=None, reuse=None, name=None, n_seg=45,num_var = 16, dtype=None, **kwargs):
     """Initialize the parameters for an NTF cell.
     Args:
       num_units: int, The number of units in the NTF cell.
@@ -87,7 +87,6 @@ class ntfCell(LayerRNNCell):
     self._forget_bias = forget_bias
     self._state_is_tuple = state_is_tuple
     self._n_seg = n_seg
-    self._num_var = num_var
     if activation:
       self._activation = activations.get(activation)
     else:
@@ -158,12 +157,12 @@ class ntfCell(LayerRNNCell):
 
     self._kernel_context = self.add_variable(
         "traffic_context/%s" % _WEIGHTS_VARIABLE_NAME,
-        shape=[self._num_units, 4 + self._num_var],# * self._n_seg
-        initializer=self._initializer,#tf.keras.initializers.TruncatedNormal(mean=0.5,stddev=0.25),#tf.keras.initializers.RandomUniform(minval=0.0, maxval=1.0),
+        shape=[self._num_units, 4 + num_var * self._n_seg],
+        initializer=tf.keras.initializers.TruncatedNormal(mean=0.5,stddev=0.25),#tf.keras.initializers.RandomUniform(minval=0.0, maxval=1.0),
         partitioner=maybe_partitioner)
     self._bias_context = self.add_variable(
         "traffic_context/%s" % _BIAS_VARIABLE_NAME,
-        shape=[4 + self._num_var],# * self._n_seg
+        shape=[4 + num_var * self._n_seg],
         initializer=init_ops.zeros_initializer)
 
     self._kernel_outm = self.add_variable(
@@ -273,13 +272,13 @@ class ntfCell(LayerRNNCell):
     # m = tf.Print(m,[m,tf.shape(m)],"m")
     # inputs should be around
     unscaled_inputs = inputs*self._max_values#*
-    # unscaled_inputs = tf.Print(unscaled_inputs,[unscaled_inputs,tf.shape(unscaled_inputs)],"unscaled_inputs",summarize=10,first_n=10)
+    unscaled_inputs = tf.Print(unscaled_inputs,[unscaled_inputs,tf.shape(unscaled_inputs)],"unscaled_inputs",summarize=10,first_n=10)
     # feature_mask = np.full((256,90), False)
     # feature_mask[:,::2*5] = True
     # feature_mask[:,1::2*5] = True
     # unscaled_inputs = tf.boolean_mask(unscaled_inputs, feature_mask)
     unscaled_inputs = tf.reshape(unscaled_inputs,[-1,self._n_seg,2])#32,45,2
-    #unscaled_inputs = tf.Print(unscaled_inputs,[unscaled_inputs,tf.shape(unscaled_inputs)],"unscaled_inputs2",summarize=10,first_n=10)
+    unscaled_inputs = tf.Print(unscaled_inputs,[unscaled_inputs,tf.shape(unscaled_inputs)],"unscaled_inputs2",summarize=10,first_n=10)
     # unscaled_inputs = tf.Print(unscaled_inputs,[tf.shape(unscaled_inputs)],"unscaled_inputs")
     # vols, occs = array_ops.split(value=unscaled_inputs, num_or_size_splits=2,axis=2)#self._n_seg, axis=1)
     # vols = tf.squeeze(vols)
@@ -289,16 +288,15 @@ class ntfCell(LayerRNNCell):
     ntf_matrix = math_ops.matmul(m, self._kernel_context)
     ntf_matrix = sigmoid(nn_ops.bias_add(ntf_matrix, self._bias_context))
 
-    boundry,ntf_matrix = array_ops.split(value=ntf_matrix, num_or_size_splits=[4,self._num_var], axis=1)#*self._n_seg
+    boundry,ntf_matrix = array_ops.split(value=ntf_matrix, num_or_size_splits=[4,num_var*self._n_seg], axis=1)
     # boundry = tf.Print(boundry,[boundry,tf.shape(boundry)],"boundry")#[32 4]
     boundry = tf.reshape(boundry,[-1,2,2])#32,2,2
-    boundry = tf.multiply(boundry,[1434.,18.3])#tf.multiply(boundry,[tf.constant(self._max_values[0]),tf.constant(self._max_values[1])])
-    boundry = tf.Print(boundry,[boundry,tf.math.reduce_mean(boundry)],"boundry",summarize=10,first_n=50)
+    boundry = tf.multiply(boundry,[tf.constant(46.0),tf.constant(24.0)])
     # boundry = tf.Print(boundry,[boundry,tf.shape(boundry)],"boundry",summarize=12,first_n=50)
-    contexts = ntf_matrix#array_ops.split(value=ntf_matrix, num_or_size_splits=self._n_seg, axis=1)
+    contexts = array_ops.split(value=ntf_matrix, num_or_size_splits=self._n_seg, axis=1)
 
-    eq_vars = tf.reshape(ntf_matrix,[-1,self._num_var,1])#+tf.constant(1.0)#*tf.constant(10.0,name="eq_vars")self._n_seg,
-    # eq_vars = tf.Print(eq_vars,[eq_vars,tf.math.reduce_max(eq_vars)],"eq_vars",summarize=10,first_n=10)
+    eq_vars = tf.reshape(ntf_matrix,[-1,self._n_seg,num_var])#+tf.constant(1.0)#*tf.constant(10.0,name="eq_vars")
+    eq_vars = tf.Print(eq_vars,[eq_vars,tf.math.reduce_max(eq_vars)],"eq_vars",summarize=10,first_n=10)
     #eq_vars = tf.Print(eq_vars,[eq_vars,tf.shape(eq_vars)],"eq_vars")
 
     prev_segs = tf.concat([boundry[:,0:1,:], unscaled_inputs[:,:-1,:]],1)
@@ -312,54 +310,52 @@ class ntfCell(LayerRNNCell):
         next_segs is next timestep volume and density [32,45,2]
         eq_vars are the variables in equation (up to 16) [32,45,16]
     """
-    T = tf.constant(10.0,name="T")#eq_vars[:,:,4]*tf.constant(60.0,name="T")#tf.constant(1.0,name="T")*
-    seg_len = tf.constant(500.0,name="sl")#eq_vars[:,:,5]*tf.constant(6000.0,name="sl")#+tf.constant(1500.0,name="seg_len")#*
+    T = eq_vars[:,:,4]*tf.constant(60.0,name="T")#tf.constant(1.0,name="T")*
+    seg_len = eq_vars[:,:,5]*tf.constant(6000.0,name="sl")#+tf.constant(1500.0,name="seg_len")#*
 
     current_volume = unscaled_inputs[:,:,0]#*tf.constant(4.0,name="q")
     current_density = unscaled_inputs[:,:,1]#*(tf.constant(0.5)+eq_vars[:,:,12])#*tf.constant(2.0)#+tf.constant(2.)*tf.constant(3.0)
 
     # seg_len = tf.Print(seg_len,[seg_len,tf.shape(seg_len)],"seg_len",summarize=10,first_n=10)
-    lane_num = tf.constant(4.0,name="lane_num")#eq_vars[:,:,6]*tf.constant(6.0,name="lane_num")#*
+    lane_num = eq_vars[:,:,6]*tf.constant(6.0,name="lane_num")#*
     # flow0 = prev_segs[:,:,0]
     # flow1 = unscaled_inputs[:,:,0]
-    r_in = tf.constant(0.0,name="r_in")#eq_vars[:,:,0]*tf.constant(1000.0,name="r_in")
-    r_out = tf.constant(0.0,name="r_out")#eq_vars[:,:,1]*tf.constant(1000.0,name="r_out")
+    r_in = eq_vars[:,:,0]*tf.constant(1000.0,name="r_in")
+    r_out = eq_vars[:,:,1]*tf.constant(1000.0,name="r_out")
 
     prev_volume = prev_segs[:,:,0]#*tf.constant(4.0,name="q")
     prev_density = prev_segs[:,:,1]#*(tf.constant(0.5)+eq_vars[:,:,12])#*tf.constant(2.0)#tf.constant(2.0)#+tf.constant(10.)+*
     next_density = next_segs[:,:,1]#*(tf.constant(0.5)+eq_vars[:,:,12])#*tf.constant(2.0)
 
-    current_velocity = tf.div(current_volume,current_density*lane_num+1e-6)#tf.clip_by_value(tf.div(current_volume,current_density*lane_num+1e-6),0.0,150.0)
-    prev_velocity = tf.div(prev_volume,prev_density*lane_num+1e-6)#tf.clip_by_value(tf.div(prev_volume,prev_density*lane_num+1e-6),0.0,150.0)
-    tau = tf.constant(12.,name="tau")#eq_vars[:,:,7]*tf.constant(100.,name="tau")#+tf.constant(1.0)#*20
-    nu = tf.constant(35.,name="nu")#eq_vars[:,:,8]*tf.constant(100.,name="nu")#+tf.constant(1.0)# + tf.constant(35.,name="nu")#*
-    kappa = tf.constant(13.,name="kappa")#eq_vars[:,:,9]*tf.constant(100.,name="kappa")#+tf.constant(1.0)# + tf.constant(13.,name="kappa")#*
-    delta = tf.constant(1.4,name="delta")#eq_vars[:,:,10]*tf.constant(10.,name="delta")#+tf.constant(1.0)# + tf.constant(1.4,name="delta")#*
-    v_f = eq_vars[:,0,0:1]*tf.constant(200.,name="v_f")#+tf.constant(1.0)# + tf.constant(120.,name="v_f")#*
-    v_f = tf.Print(v_f,[v_f,tf.math.reduce_mean(v_f)],"v_f",summarize=10,first_n=10)
-    a = eq_vars[:,2,0:1]*tf.constant(2.0,name="a")#tf.clip_by_value(eq_vars[:,:,2]*tf.constant(2.0,name="a"),0.5,1.6)#tf.clip_by_value(eq_vars[:,:,2]+ tf.constant(1.,name="a"),0.5,1.5)#
-    a = tf.Print(a,[a,tf.math.reduce_mean(a)],"a",summarize=10,first_n=10)
-    p_cr = eq_vars[:,1,0:1]*tf.constant(90.0,name="pcr")#+tf.constant(1.0)# + tf.constant(33.5,name="p_cr")#
-    p_cr = tf.Print(p_cr,[p_cr,tf.math.reduce_mean(p_cr)],"p_cr",summarize=10,first_n=10)
+    current_velocity = tf.clip_by_value(tf.div(current_volume,current_density*lane_num+1e-6),0.0,150.0)
+    prev_velocity = tf.clip_by_value(tf.div(prev_volume,prev_density*lane_num+1e-6),0.0,150.0)
+    tau = eq_vars[:,:,7]*tf.constant(100.,name="tau")#+tf.constant(1.0)#*20
+    nu = eq_vars[:,:,8]*tf.constant(100.,name="nu")#+tf.constant(1.0)# + tf.constant(35.,name="nu")#*
+    kappa = eq_vars[:,:,9]*tf.constant(100.,name="kappa")#+tf.constant(1.0)# + tf.constant(13.,name="kappa")#*
+    delta = eq_vars[:,:,10]*tf.constant(10.,name="delta")#+tf.constant(1.0)# + tf.constant(1.4,name="delta")#*
+    v_f = eq_vars[:,:,11]*tf.constant(200.,name="nu")#+tf.constant(1.0)# + tf.constant(120.,name="v_f")#*
+    a = tf.clip_by_value(eq_vars[:,:,2]*tf.constant(2.0,name="a"),0.5,1.6)#tf.clip_by_value(eq_vars[:,:,2]+ tf.constant(1.,name="a"),0.5,1.5)#
+    a = tf.Print(a,[a,tf.shape(a)],"a",summarize=10,first_n=10)
+    p_cr = eq_vars[:,:,3]*tf.constant(200.,name="pcr")#+tf.constant(1.0)# + tf.constant(33.5,name="p_cr")
 
     with tf.name_scope("next_density"):
-        next_rho =  current_density + tf.multiply(tf.div(T,tf.multiply(seg_len,lane_num)),(prev_volume - current_volume + r_in - r_out))
-        # next_rho = tf.Print(next_rho,[next_rho,tf.math.reduce_max(next_rho)],"next_rho",summarize=10,first_n=10)#[32 45]
+        next_rho =  current_density + tf.multiply(tf.divide(T,tf.multiply(seg_len,lane_num)),(prev_volume - current_volume + r_in - r_out))
+        next_rho = tf.Print(next_rho,[next_rho,tf.math.reduce_max(next_rho)],"next_rho",summarize=10,first_n=10)#[32 45]
 
     with tf.name_scope("next_velocity"):
-        stat_speed =  v_f * tf.exp( tf.div(-1.0,a) * (tf.pow(tf.div(current_density,p_cr),a)) )
+        stat_speed =  v_f * tf.exp( (-1/a) * (current_density/p_cr) **a )
         stat_speed = tf.Print(stat_speed,[stat_speed,tf.math.reduce_max(stat_speed)],"stat_speed",summarize=10,first_n=10)
 
         next_vel = current_velocity + ( (T/tau) * (stat_speed - current_velocity) )\
                         + ( (current_velocity*T/seg_len) * (prev_velocity - current_velocity ) )\
                         - ( (nu*T/(tau*seg_len)) * ( (next_density - current_density) / (current_density + kappa) )  )\
                         - ( (delta*T/(seg_len*lane_num)) * ( (r_in * current_velocity) / (current_density+kappa) ) )
-        # next_vel = tf.Print(next_vel,[next_vel,tf.math.reduce_max(next_vel)],"next_vel",summarize=10,first_n=10)#[32,45]
-        # next_vel = tf.clip_by_value(next_vel,0.0,150.0)
+        next_vel = tf.Print(next_vel,[next_vel,tf.math.reduce_max(next_vel)],"next_vel",summarize=10,first_n=10)#[32,45]
+        next_vel = tf.clip_by_value(next_vel,0.0,150.0)
 
 
     next_flows = tf.multiply(next_rho,next_vel)#tf.divide(tf.multiply(next_rho,next_vel),tf.constant(4.0))
-    # next_flows = tf.clip_by_value(next_flows,0.0,2000.0)
+    next_flows = tf.clip_by_value(next_flows,0.0,2000.0)
     # next_rho = tf.div(next_rho,(tf.constant(0.5)+eq_vars[:,:,12]))#*tf.constant(2.0))#*tf.constant(10.0))
     next_states = tf.stack([next_flows,next_rho],axis=2)
     # next_states = tf.Print(next_states,[next_states,tf.shape(next_states)],"next_states")
@@ -372,13 +368,13 @@ class ntfCell(LayerRNNCell):
         # 25%| 442/1799 [2:37:54<8:03:51, 21.39s/it, loss=2774.847]
     # m = tf.layers.dense(next_states,self._num_units,activation='tanh')
     # m = tf.layers.dense(array_ops.concat([next_states, m],1),self._num_units)
-    # next_states = tf.Print(next_states,[next_states,tf.math.reduce_max(next_states)],"next_states",summarize=10,first_n=20)
-    next_states = next_states / (self._max_values)
+    next_states = tf.Print(next_states,[next_states,tf.math.reduce_max(next_states)],"next_states",summarize=10,first_n=20)
+    # next_states = next_states / (self._max_values)
     # next_states = tf.Print(next_states,[next_states,tf.math.reduce_max(next_states)],"next_states2",summarize=12,first_n=20)
 
     m = math_ops.matmul(next_states, self._kernel_outm)
     m = sigmoid(nn_ops.bias_add(m, self._bias_outm))
-    # m = tf.Print(m,[m,tf.shape(m)],"m",summarize=10,first_n=20)
+    m = tf.Print(m,[m,tf.shape(m)],"m",summarize=10,first_n=20)
 
     if self._num_proj is not None:
       m = math_ops.matmul(m, self._proj_kernel)

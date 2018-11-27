@@ -109,21 +109,21 @@ def model_fn(mode, inputs, params, reuse=False):
 
     # Define training step that minimizes the loss with the Adam optimizer
     if is_training:
-        optimizer = tf.train.GradientDescentOptimizer(params.learning_rate)#RMSPropOptimizer(0.001)#AdamOptimizer(params.learning_rate)#tf.train.GradientDescentOptimizer(0.001)#
+        optimizer = tf.train.RMSPropOptimizer(params.learning_rate)#RMSPropOptimizer(0.001)#AdamOptimizer(params.learning_rate)#tf.train.GradientDescentOptimizer(0.001)#
         global_step = tf.train.get_or_create_global_step()
         # train_op = optimizer.minimize(loss, global_step=global_step)
 
         gradients, variables = zip(*optimizer.compute_gradients(loss))
-        def ClipIfNotBad(grad):
-            return tf.where(tf.is_finite(grad), grad, 0.5*tf.ones_like(grad))
-            return tf.where(tf.is_nan(grad), tf.zeros_like(grad), grad)
-            tf.cond(tf.reduce_sum(tf.cast(tf.math.logical_not(tf.is_finite(grad)),tf.float32))>0,lambda: grad,lambda: 0.5*tf.ones_like(grad))#tf.is_finite(tf.reduce_sum(grad)
-        gradients = [tf.clip_by_value(ClipIfNotBad(grad), -1., 1.) for grad in gradients]
+        # def ClipIfNotBad(grad):
+        #     return tf.where(tf.is_finite(grad), grad, 0.5*tf.ones_like(grad))
+        #     return tf.where(tf.is_nan(grad), tf.zeros_like(grad), grad)
+        #     tf.cond(tf.reduce_sum(tf.cast(tf.math.logical_not(tf.is_finite(grad)),tf.float32))>0,lambda: grad,lambda: 0.5*tf.ones_like(grad))#tf.is_finite(tf.reduce_sum(grad)
+        # gradients = [tf.clip_by_value(ClipIfNotBad(grad), -1., 1.) for grad in gradients]
         # gradients = [tf.clip_by_value(grad, -1., 1.) for grad in gradients]
 
         # gradients = tf.where(tf.is_nan(gradients), tf.zeros_like(gradients), gradients)
 
-        gradients, _ = tf.clip_by_global_norm(gradients, 3.0) #
+        gradients, _ = tf.clip_by_global_norm(gradients, 5.0) #
         train_op = optimizer.apply_gradients(zip(gradients, variables))
         #clip by value
         # grads = optimizer.compute_gradients(loss)
