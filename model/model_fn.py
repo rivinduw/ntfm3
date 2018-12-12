@@ -123,7 +123,7 @@ def model_fn(mode, inputs, params, reuse=False):
 
         # gradients = tf.where(tf.is_nan(gradients), tf.zeros_like(gradients), gradients)
 
-        gradients, _ = tf.clip_by_global_norm(gradients, 3.0) #
+        gradients, _ = tf.clip_by_global_norm(gradients, 5.0) #
         train_op = optimizer.apply_gradients(zip(gradients, variables))
         #clip by value
         # grads = optimizer.compute_gradients(loss)

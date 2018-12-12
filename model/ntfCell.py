@@ -315,7 +315,7 @@ class ntfCell(LayerRNNCell):
     boundry,ntf_matrix = array_ops.split(value=ntf_matrix, num_or_size_splits=[4,self._num_var], axis=1)#*self._n_seg
     # boundry = tf.Print(boundry,[boundry,tf.shape(boundry)],"boundry")#[32 4]
     boundry = tf.reshape(boundry,[-1,2,2])#32,2,2
-    boundry = tf.multiply(boundry,[10000.,100.])#tf.multiply(boundry,[tf.constant(self._max_values[0]),tf.constant(self._max_values[1])])
+    boundry = tf.multiply(boundry,[8000.,400.])#tf.multiply(boundry,[tf.constant(self._max_values[0]),tf.constant(self._max_values[1])])
     boundry = tf.Print(boundry,[boundry,tf.math.reduce_mean(boundry)],"boundry",summarize=10,first_n=50)
     # boundry = tf.Print(boundry,[boundry,tf.shape(boundry)],"boundry",summarize=12,first_n=50)
     contexts = ntf_matrix#array_ops.split(value=ntf_matrix, num_or_size_splits=self._n_seg, axis=1)
@@ -358,9 +358,9 @@ class ntfCell(LayerRNNCell):
     nu = tf.constant(35.,name="nu")#eq_vars[:,:,8]*tf.constant(100.,name="nu")#+tf.constant(1.0)# + tf.constant(35.,name="nu")#*
     kappa = tf.constant(13.,name="kappa")#eq_vars[:,:,9]*tf.constant(100.,name="kappa")#+tf.constant(1.0)# + tf.constant(13.,name="kappa")#*
     delta = tf.constant(1.4,name="delta")#eq_vars[:,:,10]*tf.constant(10.,name="delta")#+tf.constant(1.0)# + tf.constant(1.4,name="delta")#*
-    v_f = tf.constant(20.,name="v_min")+eq_vars[:,0,0:1]*tf.constant(200.,name="v_f")#+tf.constant(1.0)# + tf.constant(120.,name="v_f")#*
+    v_f = tf.constant(20.,name="v_min")+eq_vars[:,0,0:1]*tf.constant(100.,name="v_f")#+tf.constant(1.0)# + tf.constant(120.,name="v_f")#*
     v_f = tf.Print(v_f,[v_f,tf.math.reduce_mean(v_f)],"v_f",summarize=10,first_n=10)
-    a = eq_vars[:,2,0:1]*tf.constant(3.0,name="a")#tf.clip_by_value(eq_vars[:,:,2]*tf.constant(2.0,name="a"),0.5,1.6)#tf.clip_by_value(eq_vars[:,:,2]+ tf.constant(1.,name="a"),0.5,1.5)#
+    a = eq_vars[:,2,0:1]*tf.constant(2.0,name="a")#tf.clip_by_value(eq_vars[:,:,2]*tf.constant(2.0,name="a"),0.5,1.6)#tf.clip_by_value(eq_vars[:,:,2]+ tf.constant(1.,name="a"),0.5,1.5)#
     a = tf.Print(a,[a,tf.math.reduce_mean(a)],"a",summarize=10,first_n=10)
     p_cr = eq_vars[:,1,0:1]*tf.constant(200.0,name="pcr")#+tf.constant(1.0)# + tf.constant(33.5,name="p_cr")#
     p_cr = tf.Print(p_cr,[p_cr,tf.math.reduce_mean(p_cr)],"p_cr",summarize=10,first_n=10)
@@ -400,7 +400,7 @@ class ntfCell(LayerRNNCell):
     # next_states = tf.Print(next_states,[next_states,tf.math.reduce_max(next_states)],"next_states2",summarize=12,first_n=20)
 
     m = math_ops.matmul(next_states, self._kernel_outm)
-    m = sigmoid(nn_ops.bias_add(m, self._bias_outm))
+    m = self._activation(nn_ops.bias_add(m, self._bias_outm))
     # m = tf.Print(m,[m,tf.shape(m)],"m",summarize=10,first_n=20)
 
     if self._num_proj is not None:
