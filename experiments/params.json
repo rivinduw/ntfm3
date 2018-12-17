@@ -1,6 +1,6 @@
 {
     "model_version": "lstm",
-    "lstm_num_units": 90,
+    "lstm_num_units": 10,
 
     "learning_rate": 1e-3,
     "batch_size": 256,
@@ -8,5 +8,5 @@
 
     "save_summary_steps": 100,
 
-    "rnn_output_size" : 90
+    "rnn_output_size" : 10
 }

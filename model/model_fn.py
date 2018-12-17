@@ -44,8 +44,8 @@ def build_model(mode, inputs, params):
         # final_projection = lambda x: tf.layers.dense(x,1)# params.rnn_output_size)
         # apply projection to every timestep.
         # predicted_outputs = tf.map_fn(final_projection, rnn_outputs)
-        #predicted_outputs =  tf.layers.dense(rnn_outputs, 256,activation='relu')
-        predicted_outputs =  tf.layers.dense(rnn_outputs, params.rnn_output_size)
+        # predicted_outputs =  tf.layers.dense(rnn_outputs, params.rnn_output_size,activation='linear')
+        predicted_outputs =  rnn_outputs#tf.layers.dense(rnn_outputs, params.rnn_output_size)
 
     else:
         raise NotImplementedError("Unknown model version: {}".format(params.model_version))
@@ -77,19 +77,27 @@ def model_fn(mode, inputs, params, reuse=False):
         predicted_outputs = build_model(mode, inputs, params)
         # predictions = tf.argmax(logits, -1)
 
+
+
+
     # Define loss and accuracy (we need to apply a mask to account for padding)
     # losses = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels)
     # print(labels.shape)
-    # feature_mask = np.full((32,120,90), False)
-    # feature_mask[:,:,:]=True#20*2:25*2:2] = True
-    # losses = tf.boolean_mask(losses, mask)
-    # predicted_outputs = tf.reshape(tf.boolean_mask(predicted_outputs, feature_mask),[32,120,5])
-    # labels = tf.reshape(tf.boolean_mask(labels, feature_mask),[32,120,5])
+    feature_mask = np.full((params.batch_size,120,10), False)
+    feature_mask[:,::3,:]=True#20*2:25*2:2] = True
+    # losses = tf.boolean_mask(losses, feature_mask)
+    predicted_outputs = tf.reshape(tf.boolean_mask(predicted_outputs, feature_mask),[params.batch_size,120//3,-1])
+
+    label_mask = np.full((params.batch_size,120,10), False)
+    label_mask[:,:120//3,:]=True
+    labels = tf.reshape(tf.boolean_mask(labels, label_mask),[params.batch_size,120//3,-1])
 
 
     # predicted_outputs = tf.boolean_mask(predicted_outputs, feature_mask)
     # labels = tf.boolean_mask(labels, feature_mask)
-
+    labels = tf.Print(labels,[labels,tf.math.reduce_max(labels)],"labels",summarize=12,first_n=20)
+    # print(labels)
+    predicted_outputs = tf.Print(predicted_outputs,[predicted_outputs,tf.math.reduce_max(predicted_outputs)],"predicted_outputs",summarize=12,first_n=20)
 
     losses = tf.square(predicted_outputs-labels)
 
@@ -114,14 +122,24 @@ def model_fn(mode, inputs, params, reuse=False):
         # train_op = optimizer.minimize(loss, global_step=global_step)
 
         gradients, variables = zip(*optimizer.compute_gradients(loss))
+        # for g, v in zip(gradients,variables):
+        #   tf.summary.histogram(v.name, v)
+        #   tf.summary.histogram(v.name + '_grad', g)
         # def ClipIfNotBad(grad):
-        #     return tf.where(tf.is_finite(grad), grad, 0.5*tf.ones_like(grad))
-        #     return tf.where(tf.is_nan(grad), tf.zeros_like(grad), grad)
+            # return tf.where(tf.is_finite(grad), grad, 0.5*tf.ones_like(grad))
+            # return tf.where(tf.is_nan(grad), tf.zeros_like(grad), grad)
         #     tf.cond(tf.reduce_sum(tf.cast(tf.math.logical_not(tf.is_finite(grad)),tf.float32))>0,lambda: grad,lambda: 0.5*tf.ones_like(grad))#tf.is_finite(tf.reduce_sum(grad)
-        # gradients = [tf.clip_by_value(ClipIfNotBad(grad), -1., 1.) for grad in gradients]
+        # gradients = [ClipIfNotBad(grad) for grad in gradients]
         # gradients = [tf.clip_by_value(grad, -1., 1.) for grad in gradients]
 
         # gradients = tf.where(tf.is_nan(gradients), tf.zeros_like(gradients), gradients)
+        # def replace_none_with_zero(l):
+        #     return [0 if i==None else i for i in l]
+
+        # gradients = [0.0 if i==None else i for i in gradients]
+        # gradients = [tf.where(tf.is_nan(grad), tf.zeros_like(grad), grad) for grad in gradients]
+
+        # gradients = tf.Print(gradients,[gradients,tf.math.reduce_mean(gradients)],"gradients",summarize=10,first_n=10)
 
         gradients, _ = tf.clip_by_global_norm(gradients, 5.0) #
         train_op = optimizer.apply_gradients(zip(gradients, variables))
