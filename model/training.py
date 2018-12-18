@@ -102,7 +102,7 @@ def train_and_evaluate(train_model_spec, eval_model_spec, model_dir, params, res
 
             # Evaluate for one epoch on validation set
             num_steps = (params.eval_size + params.batch_size - 1) // params.batch_size
-            metrics = evaluate_sess(sess, eval_model_spec, num_steps, eval_writer)
+            metrics = evaluate_sess(sess, eval_model_spec, num_steps, eval_writer,params)
 
             # If best_eval, best_save_path
             eval_acc = metrics['accuracy']

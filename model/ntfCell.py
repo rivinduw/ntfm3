@@ -308,13 +308,29 @@ class ntfCell(LayerRNNCell):
     # m = tf.Print(m,[m,tf.shape(m)],"m")
     # inputs should be around
     unscaled_inputs = inputs*self._max_values#*
+
+    # vols = unscaled_inputs[:,0::2]
+    # occs = unscaled_inputs[:,1::2]
+    # spds = tf.clip_by_value(vols/(occs*tf.constant(3.0)+1e-6),0.,120.0)
+    # dsty = vols/(tf.constant(3.0)*spds+1e-6)
+    #
+    # occs = dsty
+    # vols = dsty*spds
+    #
+    # unscaled_inputs = tf.stack([vols,occs],axis=2)
+
+
+
     # unscaled_inputs = tf.Print(unscaled_inputs,[unscaled_inputs,tf.shape(unscaled_inputs)],"unscaled_inputs",summarize=10,first_n=10)
     # feature_mask = np.full((256,90), False)
     # feature_mask[:,::2*5] = True
     # feature_mask[:,1::2*5] = True
     # unscaled_inputs = tf.boolean_mask(unscaled_inputs, feature_mask)
+
     unscaled_inputs = tf.reshape(unscaled_inputs,[-1,self._n_seg,2])#32,45,2
-    #unscaled_inputs = tf.Print(unscaled_inputs,[unscaled_inputs,tf.shape(unscaled_inputs)],"unscaled_inputs2",summarize=10,first_n=10)
+    unscaled_inputs = tf.multiply(unscaled_inputs,[120.,30.])
+
+    unscaled_inputs = tf.Print(unscaled_inputs,[unscaled_inputs,tf.shape(unscaled_inputs)],"unscaled_inputs2",summarize=10,first_n=10)
     # unscaled_inputs = tf.Print(unscaled_inputs,[tf.shape(unscaled_inputs)],"unscaled_inputs")
     # vols, occs = array_ops.split(value=unscaled_inputs, num_or_size_splits=2,axis=2)#self._n_seg, axis=1)
     # vols = tf.squeeze(vols)
@@ -350,13 +366,13 @@ class ntfCell(LayerRNNCell):
         eq_vars are the variables in equation (up to 16) [32,45,16]
     """
     T = tf.constant(10.0,name="T")#eq_vars[:,:,4]*tf.constant(60.0,name="T")#tf.constant(1.0,name="T")*
-    seg_len = self._seg_lens#+tf.constant(100.0,name="sl")*eq_vars[:,5,0:1]#*tf.constant(6000.0,name="sl")#+tf.constant(1500.0,name="seg_len")#*
+    seg_len = self._seg_lens*(tf.constant(1.0,name="sl")+eq_vars[:,5,0:1])#*tf.constant(6000.0,name="sl")#+tf.constant(1500.0,name="seg_len")#*
 
     current_volume = unscaled_inputs[:,:,0]#*tf.constant(4.0,name="q")
     current_density = unscaled_inputs[:,:,1]#*(tf.constant(0.5)+eq_vars[:,:,12])#*tf.constant(2.0)#+tf.constant(2.)*tf.constant(3.0)
 
-    # seg_len = tf.Print(seg_len,[seg_len,tf.shape(seg_len)],"seg_len",summarize=10,first_n=10)
-    lane_num = tf.constant(6.0,name="lane_num")*eq_vars[:,6,0:1]#*tf.constant(6.0,name="lane_num")#*
+    seg_len = tf.Print(seg_len,[seg_len,tf.shape(seg_len)],"seg_len",summarize=10,first_n=10)
+    lane_num = tf.constant(10.0,name="lane_num")*eq_vars[:,6,0:1]#*tf.constant(6.0,name="lane_num")#*
     # flow0 = prev_segs[:,:,0]
     # flow1 = unscaled_inputs[:,:,0]
     r_in = tf.constant(30000.0,name="r_in")*eq_vars[:,7,0:1]#*tf.constant(1000.0,name="r_in")
@@ -372,11 +388,11 @@ class ntfCell(LayerRNNCell):
     kappa = tf.constant(13.,name="kappa")#eq_vars[:,:,9]*tf.constant(100.,name="kappa")#+tf.constant(1.0)# + tf.constant(13.,name="kappa")#*
     delta = tf.constant(1.4,name="delta")#eq_vars[:,:,10]*tf.constant(10.,name="delta")#+tf.constant(1.0)# + tf.constant(1.4,name="delta")#*
     v_f = tf.constant(20.,name="v_min")+eq_vars[:,0,0:1]*tf.constant(200.,name="v_f")#+tf.constant(1.0)# + tf.constant(120.,name="v_f")#eq_vars[:,0,0:1]
-    # v_f = tf.Print(v_f,[v_f,tf.math.reduce_mean(v_f)],"v_f",summarize=10,first_n=10)
+    v_f = tf.Print(v_f,[v_f,tf.math.reduce_mean(v_f)],"v_f",summarize=10,first_n=10)
     a = tf.constant(3.0,name="a")*eq_vars[:,2,0:1]#tf.clip_by_value(eq_vars[:,:,2]*tf.constant(2.0,name="a"),0.5,1.6)#tf.clip_by_value(eq_vars[:,:,2]+ tf.constant(1.,name="a"),0.5,1.5)#
-    # a = tf.Print(a,[a,tf.math.reduce_mean(a)],"a",summarize=10,first_n=10)
+    a = tf.Print(a,[a,tf.math.reduce_mean(a)],"a",summarize=10,first_n=10)
     p_cr = tf.constant(1000.0,name="pcr")*eq_vars[:,1,0:1]#*#+tf.constant(1.0)# + tf.constant(33.5,name="p_cr")#
-    # p_cr = tf.Print(p_cr,[p_cr,tf.math.reduce_mean(p_cr)],"p_cr",summarize=10,first_n=10)
+    p_cr = tf.Print(p_cr,[p_cr,tf.math.reduce_mean(p_cr)],"p_cr",summarize=10,first_n=10)
 
     with tf.name_scope("next_density"):
         next_rho =  current_density + tf.multiply(tf.div(T,tf.multiply(seg_len,lane_num)),(prev_volume - current_volume + r_in - r_out))
@@ -395,6 +411,9 @@ class ntfCell(LayerRNNCell):
 
 
     next_flows = tf.multiply(next_rho,next_vel)#tf.divide(tf.multiply(next_rho,next_vel),tf.constant(4.0))
+
+    next_flows = tf.divide(next_flows,120.0)
+    next_rho = tf.divide(next_flows,30.0)#(Occs/(12.0/1000.0)) / lane_num
 
     # next_rho = tf.div(next_rho,(tf.constant(0.5)+eq_vars[:,:,12]))#*tf.constant(2.0))#*tf.constant(10.0))
     next_states = tf.stack([next_flows,next_rho],axis=2)

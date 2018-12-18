@@ -6,36 +6,50 @@ import numpy as np
 import pandas as pd
 import json
 
-# from scipy.stats import mstats
+from scipy.stats import mstats
 
 def make_dataset(dataset_file="data/SH1N30s2.csv",steps = 1,train_size=57600):
 
     print("building dataset")
     data = pd.read_csv(dataset_file,index_col=0)
+    data =  pd.DataFrame(mstats.winsorize(data, limits=[0, (1 - 0.9997)],axis=0),columns=data.columns)#0.9997
 
-    data.iloc[:,::2] *= (120.0/1.0)
+    # data.iloc[:,::2] *= (120.0/1.0)
+
+
+
 
 
     data = data.astype(float)#unnessary
+    # data2 = pd.DataFrame(np.zeros_like(data))
     # data.iloc[:,1::2] *= 1.0001 #unnessary?
+    # transform dataset  -remove outliers?
 
-    lane_num = 3.0
-    Vols = data.iloc[:,0::2].values
-    Occs = data.iloc[:,1::2].values
-    avgSpeeds = np.clip(Vols/(Occs*lane_num+1e-6),0.,120.0)
-    avgDensity = Vols/(lane_num*avgSpeeds+1e-6)
+    # if True:
+    #     lane_num = 3.0
+    #     Vols = data.iloc[:,0::2].values
+    #     Occs = data.iloc[:,1::2].values
+    #     avgSpeeds = np.clip(Vols/(Occs*lane_num+1e-6),0.,120.0)
+    #     avgDensity = Vols/(lane_num*avgSpeeds+1e-6)
+    #
+    #     # print(avgSpeeds)
+    #     # data = pd.DataFrame(np.zeros((data.shape[0],data.shape[1])))
+    #     data2.iloc[:,1::2] = avgDensity
+    #     data2.iloc[:,0::2] = avgDensity*avgSpeeds
 
-    # print(avgSpeeds)
-    # data = pd.DataFrame(np.zeros((data.shape[0],data.shape[1])))
-    data.iloc[:,1::2] = avgDensity
-    data.iloc[:,0::2] = avgDensity*avgSpeeds
-
+    # print(data.mean().mean())
+    # print(data2.mean().mean())
+    # data=data2
     # data.iloc[:,::2] = avgSpeeds*avgDensity
+
+    print(str(np.array(~np.isfinite( data )).sum()))
+    #replace None, 0, Na with 1.0
     data.replace(to_replace=[None], value=1.0, inplace=True)
-    data.replace(to_replace=[0], value=1.0, inplace=True)
+    data.replace(to_replace=[0.0], value=1.0, inplace=True)
 
     data = data.iloc[:,17*2:22*2].fillna(value=1.0)
 
+    print(str(np.array(data)[ ~ np.isfinite( data )].sum()))
     data_in_train = data.iloc[:57600-steps,:]
     data_out_train = data.iloc[steps:57600,:]
 
