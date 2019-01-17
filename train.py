@@ -62,19 +62,10 @@ if __name__ == '__main__':
 
     # Create the input data pipeline
     logging.info("Creating the datasets...")
-    # train_x = load_dataset_from_csv(filenames = ["data/train/SH1N30s2-in-1.csv"])#["data/SH1N30s2c.csv"])
-    # train_x = load_dataset_from_csv(filenames = ["data/train/payne/payne_train_in_a_1.4_pcr_90.0_vf_110.0.csv"])
-    # train_y = load_dataset_from_csv(filenames = ["data/train/payne/payne_train_out_a_1.4_pcr_90.0_vf_110.0.csv"])#"data/train/SH1N30s2-out-1.csv"])#["data/SH1N30s2c.csv"])#["data/labels/SH1N30s2c.csv"])
-    # # train_labels = load_dataset_from_csv()#load_dataset_from_csv(path_train_labels)
-    # eval_x = load_dataset_from_csv(filenames = ["data/test/payne/payne_test_in_a_1.4_pcr_90.0_vf_110.0.csv"])#"data/test/SH1N30s2-in-1.csv"])#["data/eval/SH1N30s2c-in.csv"])#load_dataset_from_csv(path_eval_sentences)
-    # eval_y = load_dataset_from_csv(filenames = ["data/test/payne/payne_test_out_a_1.4_pcr_90.0_vf_110.0.csv"])#"data/test/SH1N30s2-out-1.csv"])#["data/eval/SH1N30s2c-out.csv"])
-
-    #eval_labels = load_dataset_from_csv()
-
-    train_x = load_dataset_from_csv(filenames = ["data/train/SH1N30s2-in-1s.csv"])
-    train_y = load_dataset_from_csv(filenames = ["data/train/SH1N30s2-out-1s.csv"])
-    eval_x = load_dataset_from_csv(filenames = ["data/test/SH1N30s2-in-1s.csv"])
-    eval_y = load_dataset_from_csv(filenames = ["data/test/SH1N30s2-out-1s.csv"])
+    train_x = load_dataset_from_csv(filenames = ["data/train/data-in.csv"],params = params)
+    train_y = load_dataset_from_csv(filenames = ["data/train/data-out.csv"],params = params)
+    eval_x = load_dataset_from_csv(filenames = ["data/test/data-in.csv"],params = params)
+    eval_y = load_dataset_from_csv(filenames = ["data/test/data-out.csv"],params = params)
 
 
     # Specify other parameters for the dataset and the model
@@ -82,8 +73,6 @@ if __name__ == '__main__':
 
     params.buffer_size = 6000#params.train_size # buffer size for shuffling
     params.restore_dir= None#"experiments/best_weights"#"experiments/last_weights"#None#args.restore_dir#"experiments/best_weights"#None#
-    # params.id_pad_word = words.lookup(tf.constant(params.pad_word))
-    # params.id_pad_tag = tags.lookup(tf.constant(params.pad_tag))
 
     # Create the two iterators over the two datasets
     train_inputs = input_fn('train', train_x,train_y, params)

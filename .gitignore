@@ -1,4 +1,4 @@
-venv
+env
 experiments/best_weights
 experiments/last_weights
 experiments/eval_summaries
@@ -6,8 +6,7 @@ experiments/train_summaries
 experiments/train.log
 model/__pycache__
 model/.ipynb_checkpoints
-data/eval
-data/labels
+data/processedFiles
 data/test
 data/train
 input_batch.csv

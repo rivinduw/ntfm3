@@ -23,17 +23,8 @@ def build_model(mode, inputs, params):
     input_batch = inputs['input_batch']
 
     if params.model_version == 'lstm':
-        # Get word embeddings for each token in the sentence
-        # embeddings = tf.get_variable(name="embeddings", dtype=tf.float32,
-        #         shape=[params.vocab_size, params.embedding_size])
-        # sentence = tf.nn.embedding_lookup(embeddings, sentence)
-
-        # Apply LSTM over the embeddings
-        # lstm_cell = tf.nn.rnn_cell.LSTMCell(params.lstm_num_units,use_peepholes=True,cell_clip=3.0)
-        # lstm_cell = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(params.lstm_num_units)
-        lstm_cell = ntfCell(params.lstm_num_units)#,use_peepholes=True,cell_clip=3.0)
+        lstm_cell = ntfCell(params.num_cols,num_var = 11,max_vals = params.max_vals, all_seg_lens = params.seg_lens)#,use_peepholes=True,cell_clip=3.0)
         # lstm_cell = LSTMCell2(params.lstm_num_units)#,use_peepholes=True,cell_clip=3.0)
-
 
         rnn_outputs, rnn_states  = tf.nn.dynamic_rnn(lstm_cell, input_batch, dtype=tf.float32)
 
@@ -83,24 +74,30 @@ def model_fn(mode, inputs, params, reuse=False):
     # Define loss and accuracy (we need to apply a mask to account for padding)
     # losses = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels)
     # print(labels.shape)
-    feature_mask = np.full((params.batch_size,120,10), False)
-    feature_mask[:,::3,:]=True#20*2:25*2:2] = True
+    # feature_mask = np.full((params.batch_size,params.window_size,params.num_cols), False)
+    # feature_mask[:,::18,::5]=True#20*2:25*2:2] = True
+    # feature_mask[:,::18,1::5]=True
     # losses = tf.boolean_mask(losses, feature_mask)
-    predicted_outputs = tf.reshape(tf.boolean_mask(predicted_outputs, feature_mask),[params.batch_size,120//3,-1])
+    # predicted_outputs = tf.reshape(tf.boolean_mask(predicted_outputs, feature_mask),[params.batch_size,params.window_size//18,-1])
+    feature_mask = labels > 1e-5
 
-    label_mask = np.full((params.batch_size,120,10), False)
-    label_mask[:,:120//3,:]=True
-    labels = tf.reshape(tf.boolean_mask(labels, label_mask),[params.batch_size,120//3,-1])
+    # label_mask = np.full((params.batch_size,params.window_size,params.num_cols), False)
+    # label_mask[:,::18,::5]=True
+    # label_mask[:,::18,1::5]=True
+    # labels = tf.reshape(tf.boolean_mask(labels, label_mask),[params.batch_size,params.window_size//18,-1])
+    predicted_outputs = tf.boolean_mask(predicted_outputs, feature_mask)
+    labels            = tf.boolean_mask(labels, feature_mask)
 
 
     # predicted_outputs = tf.boolean_mask(predicted_outputs, feature_mask)
     # labels = tf.boolean_mask(labels, feature_mask)
     labels = tf.Print(labels,[labels,tf.math.reduce_max(labels)],"labels",summarize=12,first_n=20)
-    # print(labels)
     predicted_outputs = tf.Print(predicted_outputs,[predicted_outputs,tf.math.reduce_max(predicted_outputs)],"predicted_outputs",summarize=12,first_n=20)
 
     losses = tf.square(predicted_outputs-labels)
 
+    predicted_outputs = tf.Print(predicted_outputs,[predicted_outputs,tf.shape(predicted_outputs)],"predicted_outputs-for-loss",summarize=10,first_n=10)
+    losses = tf.Print(losses,[losses,tf.shape(losses)],"losses",summarize=10,first_n=10)
     # losses = tf.square(predicted_outputs-labels)#tf.losses.mean_squared_error(predicted_outputs,labels)
     # mask = tf.sequence_mask(sentence_lengths)
     # timestep_mask = np.full((32,120,5), True)
@@ -141,7 +138,7 @@ def model_fn(mode, inputs, params, reuse=False):
 
         # gradients = tf.Print(gradients,[gradients,tf.math.reduce_mean(gradients)],"gradients",summarize=10,first_n=10)
 
-        gradients, _ = tf.clip_by_global_norm(gradients, 3.0) #
+        gradients, _ = tf.clip_by_global_norm(gradients, 5.0) #
         train_op = optimizer.apply_gradients(zip(gradients, variables))
         #clip by value
         # grads = optimizer.compute_gradients(loss)
