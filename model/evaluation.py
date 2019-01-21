@@ -41,42 +41,42 @@ def evaluate_sess(sess, model_spec, num_steps, writer=None, params=None):
 
     # DELETE DEBUGGING CODE write out to csv the inputs and outputs/predictions
     predicted_outputs,labels,input_batch = sess.run([model_spec['predictions'],model_spec['labels'],model_spec['input_batch']])
-    import pandas as pd
-    print(predicted_outputs.shape)
-    print(labels.shape)
-    print(input_batch.shape)
-    predicted_outputs = predicted_outputs.reshape((params.batch_size,120//3,10))
-    labels = labels.reshape((params.batch_size,120//3,10))
-    input_batch = input_batch.reshape((params.batch_size,120,10))
-
-    def rolling_sum(a, n=30) :
-        ret = np.cumsum(a, axis=0, dtype=float)
-        ret[n:, :] = ret[n:, :] - ret[:-n, :]
-        #ret[n:, ::2] = ret[n:, ::2] - ret[:-n, ::2]
-        # ret[n:,1::2] = np.divide(ret[n:,1::2],n)##even columns are occupancy and shoud be averaged instead of summed
-        return ret[n - 1:,:]
-    def div0( a, b ):
-        with np.errstate(divide='ignore', invalid='ignore'):
-            a = a.astype(float)
-            b = b.astype(float)
-            sel = np.bitwise_not(np.isclose(b, 0))
-            c = np.true_divide( a[sel], b[sel] )
-            c[ ~ np.isfinite( c )] = 0  # -inf inf NaN
-        return c
-    def regAccuracy(ground_truth, predictions):
-        mape = np.mean(np.ma.fix_invalid(np.abs(div0((ground_truth - predictions), ground_truth)),fill_value=0))
-        return 1 - mape
-    mean_acc = []
-    for ii in range(params.batch_size):
-        pred_sum = rolling_sum(np.array(predicted_outputs[ii,:,:]))
-        act_sum = rolling_sum(np.array(labels[ii,:,:]))
-        accu = regAccuracy(act_sum, pred_sum)
-        mean_acc.append(accu)
-    print("5min approx accuracy: ",np.mean(np.array(mean_acc)))
-    pd.DataFrame(np.array(mean_acc)).to_csv('meanAcc.csv')
-    pd.DataFrame(predicted_outputs[0,:,:]).to_csv('predicted_outputs.csv')
-    pd.DataFrame(labels[0,:,:]).to_csv('labels.csv')
-    pd.DataFrame(input_batch[0,:,:]).to_csv('input_batch.csv')
+    # import pandas as pd
+    # print(predicted_outputs.shape)
+    # print(labels.shape)
+    # print(input_batch.shape)
+    # predicted_outputs = predicted_outputs.reshape((params.batch_size,120//3,10))
+    # labels = labels.reshape((params.batch_size,120//3,10))
+    # input_batch = input_batch.reshape((params.batch_size,120,10))
+    #
+    # def rolling_sum(a, n=30) :
+    #     ret = np.cumsum(a, axis=0, dtype=float)
+    #     ret[n:, :] = ret[n:, :] - ret[:-n, :]
+    #     #ret[n:, ::2] = ret[n:, ::2] - ret[:-n, ::2]
+    #     # ret[n:,1::2] = np.divide(ret[n:,1::2],n)##even columns are occupancy and shoud be averaged instead of summed
+    #     return ret[n - 1:,:]
+    # def div0( a, b ):
+    #     with np.errstate(divide='ignore', invalid='ignore'):
+    #         a = a.astype(float)
+    #         b = b.astype(float)
+    #         sel = np.bitwise_not(np.isclose(b, 0))
+    #         c = np.true_divide( a[sel], b[sel] )
+    #         c[ ~ np.isfinite( c )] = 0  # -inf inf NaN
+    #     return c
+    # def regAccuracy(ground_truth, predictions):
+    #     mape = np.mean(np.ma.fix_invalid(np.abs(div0((ground_truth - predictions), ground_truth)),fill_value=0))
+    #     return 1 - mape
+    # mean_acc = []
+    # for ii in range(params.batch_size):
+    #     pred_sum = rolling_sum(np.array(predicted_outputs[ii,:,:]))
+    #     act_sum = rolling_sum(np.array(labels[ii,:,:]))
+    #     accu = regAccuracy(act_sum, pred_sum)
+    #     mean_acc.append(accu)
+    # print("5min approx accuracy: ",np.mean(np.array(mean_acc)))
+    # pd.DataFrame(np.array(mean_acc)).to_csv('meanAcc.csv')
+    # pd.DataFrame(predicted_outputs[0,:,:]).to_csv('predicted_outputs.csv')
+    # pd.DataFrame(labels[0,:,:]).to_csv('labels.csv')
+    # pd.DataFrame(input_batch[0,:,:]).to_csv('input_batch.csv')
 
 
     # Add summaries manually to writer at global_step_val

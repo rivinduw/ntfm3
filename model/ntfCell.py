@@ -90,6 +90,9 @@ class ntfCell(LayerRNNCell):
     self._state_is_tuple = state_is_tuple
 
     self._num_var = num_var
+
+    self._num_splits = 5
+
     if activation:
       self._activation = activations.get(activation)
     else:
@@ -136,18 +139,30 @@ class ntfCell(LayerRNNCell):
         else None)
     self._kernel = self.add_variable(
         _WEIGHTS_VARIABLE_NAME,
-        shape=[input_depth + h_depth, 4 * self._num_units],
+        shape=[input_depth + h_depth, self._num_splits * self._num_units],
         initializer=self._initializer,
         partitioner=maybe_partitioner)
 
+    # attention in inputs
+    self._kernel_attention = self.add_variable(
+        "_kernel_attention",
+        shape=[self._num_units,2*self._num_units],
+        initializer=self._initializer,
+        partitioner=maybe_partitioner)
+    self._bias_attention = self.add_variable(
+        "_bias_attention",
+        shape=[2 * self._num_units],
+        initializer=init_ops.zeros_initializer)
+
+
     self._kernel_context = self.add_variable(
         "traffic_context/%s" % _WEIGHTS_VARIABLE_NAME,
-        shape=[self._num_units, 4 + self._num_var],# * self._n_seg
+        shape=[self._num_units, 4 + self._num_var*self._n_seg],# * self._n_seg
         initializer=self._initializer,#tf.keras.initializers.TruncatedNormal(mean=0.5,stddev=0.25),#tf.keras.initializers.RandomUniform(minval=0.0, maxval=1.0),
         partitioner=maybe_partitioner)
     self._bias_context = self.add_variable(
         "traffic_context/%s" % _BIAS_VARIABLE_NAME,
-        shape=[4 + self._num_var],# * self._n_seg
+        shape=[4 + self._num_var*self._n_seg],# * self._n_seg
         initializer=init_ops.zeros_initializer)
 
     self._kernel_outm = self.add_variable(
@@ -167,7 +182,7 @@ class ntfCell(LayerRNNCell):
       initializer = init_ops.zeros_initializer(dtype=self.dtype)
     self._bias = self.add_variable(
         _BIAS_VARIABLE_NAME,
-        shape=[4 * self._num_units],
+        shape=[self._num_splits * self._num_units],
         initializer=initializer)
     if self._use_peepholes:
       self._w_f_diag = self.add_variable("w_f_diag", shape=[self._num_units],
@@ -224,11 +239,12 @@ class ntfCell(LayerRNNCell):
     if input_size is None:
       raise ValueError("Could not infer input size from inputs.get_shape()[-1]")
 
-    inputs = tf.div((inputs+1e-12),(self._max_values+1e-6))
-    m_prev = tf.div((m_prev+1e-12),(self._max_values+1e-6))
+    inputs_scaled = tf.div((inputs+1e-12),(self._max_values+1e-6))
+    m_prev_scaled = tf.div((m_prev+1e-12),(self._max_values+1e-6))
+
     # i = input_gate, j = new_input, f = forget_gate, o = output_gate
     lstm_matrix = math_ops.matmul(
-        array_ops.concat([inputs, m_prev], 1), self._kernel) #128+90 going in, 5*128 coming out [input_depth + h_depth, 5 * self._num_units]
+        array_ops.concat([inputs_scaled, m_prev_scaled], 1), self._kernel) #128+90 going in, 5*128 coming out [input_depth + h_depth, 5 * self._num_units]
         # self._kernel = self.add_variable(
             # _WEIGHTS_VARIABLE_NAME,
             # shape=[input_depth + h_depth, 5 * self._num_units],
@@ -236,8 +252,8 @@ class ntfCell(LayerRNNCell):
             # partitioner=maybe_partitioner)
     lstm_matrix = nn_ops.bias_add(lstm_matrix, self._bias)
 
-    i, j, f, o  = array_ops.split(
-        value=lstm_matrix, num_or_size_splits=4, axis=1)
+    i, j, f, o, att_c  = array_ops.split(
+        value=lstm_matrix, num_or_size_splits=self._num_splits, axis=1)
     # o = tf.Print(o,[o,tf.shape(o)],"o")#[32 128]
     # Diagonal connections
     if self._use_peepholes:
@@ -256,34 +272,52 @@ class ntfCell(LayerRNNCell):
     else:
       m = sigmoid(o) * self._activation(c)
 
-    # m = tf.Print(m,[m,tf.shape(m)],"m")
-    # inputs should be around
-    inputs = tf.Print(inputs,[inputs,tf.shape(inputs)],"inputs",summarize=10,first_n=10)
-    self._max_values = tf.Print(self._max_values,[self._max_values,tf.shape(self._max_values)],"_max_values",summarize=10,first_n=10)
-    unscaled_inputs = inputs*(self._max_values+1e-6)
 
-    # unscaled_inputs = tf.Print(unscaled_inputs,[unscaled_inputs,tf.shape(unscaled_inputs)],"unscaled_inputs",summarize=10,first_n=10)
-    # feature_mask = np.full((256,90), False)
-    # feature_mask[:,::2*5] = True
-    # feature_mask[:,1::2*5] = True
-    # unscaled_inputs = tf.boolean_mask(unscaled_inputs, feature_mask)
-
-    unscaled_inputs = tf.reshape(unscaled_inputs,[-1,self._n_seg,5])#32,45,2
-    #change to hourly
-    unscaled_inputs = tf.multiply(unscaled_inputs,[120.,5.,1.,1.,1.])#BUG:Change 30 to variable
-
-    unscaled_inputs = tf.Print(unscaled_inputs,[unscaled_inputs,tf.shape(unscaled_inputs)],"unscaled_inputs2",summarize=10,first_n=10)
 
     ntf_matrix = math_ops.matmul(m, self._kernel_context)
     ntf_matrix = sigmoid(nn_ops.bias_add(ntf_matrix, self._bias_context))#)
 
-    boundry,ntf_matrix = array_ops.split(value=ntf_matrix, num_or_size_splits=[4,self._num_var], axis=1)#*self._n_seg
+    boundry,ntf_matrix = array_ops.split(value=ntf_matrix, num_or_size_splits=[4,self._num_var*self._n_seg], axis=1)#*self._n_seg
     boundry = tf.reshape(boundry,[-1,2,2])#32,2,2
     boundry = tf.multiply(boundry,[20000.,500.])#tf.multiply(boundry,[tf.constant(self._max_values[0]),tf.constant(self._max_values[1])])
     # boundry = tf.Print(boundry,[boundry,tf.math.reduce_mean(boundry)],"boundry",summarize=10,first_n=50)
     contexts = ntf_matrix#array_ops.split(value=ntf_matrix, num_or_size_splits=self._n_seg, axis=1)
 
-    eq_vars = tf.reshape(ntf_matrix,[-1,self._num_var,1])#TODO:what's 1? +tf.constant(1.0)#*tf.constant(10.0,name="eq_vars")self._n_seg,
+    eq_vars = tf.reshape(ntf_matrix,[-1,self._num_var,self._n_seg])#TODO:what's 1? +tf.constant(1.0)#*tf.constant(10.0,name="eq_vars")self._n_seg,
+
+
+
+    #attention
+    # att_c = math_ops.matmul(att_c, self._kernel_attention)
+    # att_c = nn_ops.bias_add(att_c, self._bias_attention)
+    # att_c = tf.reshape(att_c,[-1,self._num_units,2])
+    # att_c = tf.nn.softmax(att_c,axis=-1) #-1 is actually default
+    #
+    att_c = tf.Print(att_c,[att_c,tf.shape(att_c)],"att_c",summarize=10,first_n=10)
+    m_prev= tf.Print(m_prev,[m_prev,tf.shape(m_prev)],"m_prev",summarize=10,first_n=10)
+    inputs = tf.Print(inputs,[inputs,tf.shape(inputs)],"inputs",summarize=10,first_n=10)
+    # # self._max_values = tf.Print(self._max_values,[self._max_values,tf.shape(self._max_values)],"_max_values",summarize=10,first_n=10)
+    #
+    # stacked_inputs = tf.stack([inputs, m_prev], axis=2)
+    # stacked_inputs = tf.Print(stacked_inputs,[stacked_inputs,tf.shape(stacked_inputs)],"stacked_inputs",summarize=10,first_n=10)
+    # unscaled_inputs = tf.reduce_sum(tf.multiply(stacked_inputs,att_c),axis=2)
+
+    #residual add tanh
+    att_c = tf.math.tanh(att_c)
+
+    unscaled_inputs = inputs #+ tf.multiply(att_c,m_prev)
+
+
+    # unscaled_inputs = inputs+ tf.reduce_mean(att_c)*0 + 0*m_prev#*(self._max_values+1e-6)
+    unscaled_inputs = tf.Print(unscaled_inputs,[unscaled_inputs,tf.shape(unscaled_inputs)],"unscaled_inputs1",summarize=10,first_n=10)
+
+    unscaled_inputs = tf.reshape(unscaled_inputs,[-1,self._n_seg,5])#32,45,2
+    #change to hourly flow
+    unscaled_inputs = tf.multiply(unscaled_inputs,[120.,5.,1.,1.,1.])#BUG:Change 5 to variable
+
+    unscaled_inputs = tf.Print(unscaled_inputs,[unscaled_inputs,tf.shape(unscaled_inputs)],"unscaled_inputs2",summarize=10,first_n=10)
+
+    densities = unscaled_inputs[:,:,0] / unscaled_inputs[:,:,1]
 
     prev_segs = tf.concat([unscaled_inputs[:,0:1,:2], unscaled_inputs[:,:-1,:2]],1)#prev_segs = tf.concat([boundry[:,0:1,:], unscaled_inputs[:,:-1,:]],1)
 
@@ -347,6 +381,7 @@ class ntfCell(LayerRNNCell):
     next_rho = tf.divide(next_flows,5.0)#(Occs/(12.0/1000.0)) / lane_num
 
     # next_rho = tf.div(next_rho,(tf.constant(0.5)+eq_vars[:,:,12]))#*tf.constant(2.0))#*tf.constant(10.0))
+    # next_states = tf.stack([next_flows,next_rho,unscaled_inputs[:,:,2],unscaled_inputs[:,:,3],unscaled_inputs[:,:,4]],axis=2)
     next_states = tf.stack([next_flows,next_rho,next_vel,unscaled_inputs[:,:,3],unscaled_inputs[:,:,4]],axis=2)
     # next_states = tf.stack([next_states,],axis=2)
     # next_states = tf.Print(next_states,[next_states,tf.shape(next_states)],"next_states")
@@ -364,7 +399,7 @@ class ntfCell(LayerRNNCell):
     # next_states = next_states / (self._max_values)
     # next_states = tf.Print(next_states,[next_states,tf.math.reduce_max(next_states)],"next_states2",summarize=12,first_n=20)
 
-    m = next_states #/ (self._max_values)
+    m = tf.nn.relu(next_states) #/ (self._max_values)
     # m = math_ops.matmul(next_states, self._kernel_outm)
     # m = self._activation(nn_ops.bias_add(m, self._bias_outm))
     # # m = tf.Print(m,[m,tf.shape(m)],"m",summarize=10,first_n=20)
@@ -544,7 +579,7 @@ class LSTMCell2(LayerRNNCell):
       initializer = init_ops.zeros_initializer(dtype=self.dtype)
     self._bias = self.add_variable(
         _BIAS_VARIABLE_NAME,
-        shape=[4 * self._num_units],
+        shape=[self._num_splits * self._num_units],
         initializer=initializer)
     if self._use_peepholes:
       self._w_f_diag = self.add_variable("w_f_diag", shape=[self._num_units],
