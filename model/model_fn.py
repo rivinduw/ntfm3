@@ -26,7 +26,14 @@ def build_model(mode, inputs, params):
         lstm_cell = ntfCell(params.num_cols,num_var = 11,max_vals = params.max_vals, all_seg_lens = params.seg_lens)#,use_peepholes=True,cell_clip=3.0)
         # lstm_cell = LSTMCell2(params.lstm_num_units)#,use_peepholes=True,cell_clip=3.0)
 
-        rnn_outputs, rnn_states  = tf.nn.dynamic_rnn(lstm_cell, input_batch, dtype=tf.float32)
+        init_state = lstm_cell.zero_state(params.batch_size, dtype=tf.float32)
+        init_state = tf.identity(init_state, 'init_state') #Actually it works without this line. But it can be useful
+        _lstm_state_ = tf.contrib.rnn.LSTMStateTuple(init_state[0, :, :], init_state[1,:,:]+ params.mean_vals)
+
+        # initial_state[1] = initial_state[1] + params.max_vals
+        # initial_state = [(tf.add(state[0],tf.ones_like(state[0])*params.max_vals), state[1]) for state in initial_state]
+
+        rnn_outputs, rnn_states  = tf.nn.dynamic_rnn(lstm_cell, input_batch, dtype=tf.float32,initial_state=_lstm_state_)
 
         # # Compute logits from the output of the LSTM
         # logits = tf.layers.dense(output, params.number_of_tags)
@@ -79,8 +86,9 @@ def model_fn(mode, inputs, params, reuse=False):
     # feature_mask[:,::18,1::5]=True
     # losses = tf.boolean_mask(losses, feature_mask)
     # predicted_outputs = tf.reshape(tf.boolean_mask(predicted_outputs, feature_mask),[params.batch_size,params.window_size//18,-1])
-    feature_mask = labels > 1e-5
-
+    feature_mask = labels > 1e-6
+    predicted_outputs = tf.Print(predicted_outputs,[predicted_outputs,tf.math.reduce_max(predicted_outputs),tf.shape(predicted_outputs)],"predicted_outputs-premask",summarize=12,first_n=20)
+    labels = tf.Print(labels,[labels,tf.math.reduce_max(labels),tf.shape(labels)],"labels-premask",summarize=12,first_n=20)
     # label_mask = np.full((params.batch_size,params.window_size,params.num_cols), False)
     # label_mask[:,::18,::5]=True
     # label_mask[:,::18,1::5]=True
@@ -91,12 +99,14 @@ def model_fn(mode, inputs, params, reuse=False):
 
     # predicted_outputs = tf.boolean_mask(predicted_outputs, feature_mask)
     # labels = tf.boolean_mask(labels, feature_mask)
-    labels = tf.Print(labels,[labels,tf.math.reduce_max(labels)],"labels",summarize=12,first_n=20)
-    predicted_outputs = tf.Print(predicted_outputs,[predicted_outputs,tf.math.reduce_max(predicted_outputs)],"predicted_outputs",summarize=12,first_n=20)
+    labels = tf.Print(labels,[labels,tf.math.reduce_max(labels),tf.shape(labels)],"labels",summarize=12,first_n=20)
+    predicted_outputs = tf.Print(predicted_outputs,[predicted_outputs,tf.math.reduce_max(predicted_outputs),tf.shape(predicted_outputs)],"predicted_outputs",summarize=12,first_n=20)
 
     losses = tf.square(predicted_outputs-labels)
+    # weights = tf.trainable_variables()
+    # lossL2 = tf.add_n([tf.nn.l2_loss(v) for v in weights])*0.001
 
-    predicted_outputs = tf.Print(predicted_outputs,[predicted_outputs,tf.shape(predicted_outputs)],"predicted_outputs-for-loss",summarize=10,first_n=10)
+    # predicted_outputs = tf.Print(predicted_outputs,[predicted_outputs,tf.shape(predicted_outputs)],"predicted_outputs-for-loss",summarize=10,first_n=10)
     losses = tf.Print(losses,[losses,tf.shape(losses)],"losses",summarize=10,first_n=10)
     # losses = tf.square(predicted_outputs-labels)#tf.losses.mean_squared_error(predicted_outputs,labels)
     # mask = tf.sequence_mask(sentence_lengths)
