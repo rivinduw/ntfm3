@@ -322,14 +322,28 @@ class ntfCell(LayerRNNCell):
     nu = tf.constant(35.,name="nu")
     kappa = tf.constant(13.,name="kappa")
     delta = tf.constant(1.4,name="delta")
-    lane_num = tf.constant(3.0,name="lane_num")#*eq_vars[:,6,0:1]
+
 
     flow_scaling = tf.constant(12000.0,name="flow_scaling") #from (0,1) to..
     density_scaling = tf.constant(40.0,name="density_scaling")
 
+    v_f = tf.constant(200.,name="v_f") * traffic_variables[:,:,0]
+    a = tf.constant(3.0,name="a") * traffic_variables[:,:,1]
+    p_cr = tf.constant(1000.0,name="pcr") * traffic_variables[:,:,2]
+
+    future_r_in = flow_scaling * traffic_variables[:,:,3]
+    future_r_out = flow_scaling * traffic_variables[:,:,4]
+
+    g = tf.constant(10.0,name="g") * traffic_variables[:,:,5]
+
+    lane_num = tf.constant(6.0,name="lane_num") * traffic_variables[:,:,6]
+    lane_num = tf.Print(lane_num,[lane_num,tf.math.reduce_max(lane_num),tf.shape(lane_num)],"lane_num",summarize=10,first_n=10)
+    seg_len = tf.Print(seg_len,[seg_len,tf.math.reduce_max(seg_len),tf.shape(seg_len)],"seg_len",summarize=10,first_n=10)
+
+
     current_flows = tf.multiply(unscaled_inputs[:,:,0],120.0)
     current_velocities = unscaled_inputs[:,:,2]
-    g = traffic_variables[:,:,4]*tf.constant(10.0,name="g")
+
     current_densities =  unscaled_inputs[:,:,1] * g#tf.div(current_flows, current_velocities*lane_num + 1e-6)
 
     r_in = tf.multiply(unscaled_inputs[:,:,3],120.0)
@@ -337,7 +351,7 @@ class ntfCell(LayerRNNCell):
 
     first_flow     = boundry[:,0:1]*flow_scaling #current_flows[:,:1] #: variable
     first_density  = boundry[:,1:2]*density_scaling #current_densities[:,:1] #: variable
-    first_velocity = tf.div(first_flow,first_density*lane_num+1e-6)
+    first_velocity = tf.div(first_flow,first_density*lane_num[:,0:1]) #lane_num is [batch_size,12]
     last_density   = boundry[:,2:3]*density_scaling #current_densities[:,-1:] #: variable
 
     prev_flows      = tf.concat([first_flow,current_flows[:,:-1]],1)
@@ -351,12 +365,7 @@ class ntfCell(LayerRNNCell):
         eq_vars are the variables in equation (up to 16) [32,45,16]
     """
 
-    v_f = tf.constant(200.,name="v_f") * traffic_variables[:,:,0]
-    a = tf.constant(3.0,name="a") * traffic_variables[:,:,1]
-    p_cr = tf.constant(1000.0,name="pcr") * traffic_variables[:,:,2]
 
-    future_r_in = flow_scaling * traffic_variables[:,:,3]
-    future_r_out = flow_scaling * traffic_variables[:,:,4]
 
     v_f = tf.Print(v_f,[v_f,tf.math.reduce_mean(v_f)],"v_f",summarize=10,first_n=10)
     a = tf.Print(a,[a,tf.math.reduce_mean(a)],"a",summarize=10,first_n=10)
