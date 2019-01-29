@@ -62,12 +62,14 @@ def make_dataset(datadir = '/home/rwee015/Documents/Data/DataFromMikeSept2015/ex
     del someSegs
     del unstackedSegs
 
-    allData.fillna(0,inplace=True)
+    # allData.fillna(method='pad',inplace=True)
+    allData.fillna(0.0,inplace=True)
 
     train_size = int(float(train_frac)*len(allData))
     print("train size:",str(train_size))
 
     max_vals = allData.iloc[:train_size,:].max(axis=0)
+    mean_vals = allData.iloc[:train_size,:][allData.iloc[:train_size,:]>0.0001].mean(axis=0).fillna(0.0)
     pd.DataFrame(max_vals).T.to_csv('data/max_vals.csv',index=False)
 
     data_in_train = allData.iloc[:train_size-steps,:]
@@ -94,6 +96,7 @@ def make_dataset(datadir = '/home/rwee015/Documents/Data/DataFromMikeSept2015/ex
     data_params["test_size"] = len(data_in_test)-steps*32*120
 
     data_params["max_vals"] = list(max_vals)
+    data_params["mean_vals"] = list(mean_vals)
     data_params["num_cols"] = len(data_params["max_vals"])#data_in_train.shape[1]
     data_params["seg_lens"] = list(seg_lens)
     data_params["num_segs"] = len(data_params["seg_lens"])

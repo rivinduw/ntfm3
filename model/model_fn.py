@@ -124,7 +124,7 @@ def model_fn(mode, inputs, params, reuse=False):
 
     # Define training step that minimizes the loss with the Adam optimizer
     if is_training:
-        optimizer = tf.train.RMSPropOptimizer(params.learning_rate)#RMSPropOptimizer(0.001)#AdamOptimizer(params.learning_rate)#tf.train.GradientDescentOptimizer(0.001)#
+        optimizer = tf.train.AdamOptimizer(params.learning_rate)#RMSPropOptimizer(0.001)#AdamOptimizer(params.learning_rate)#tf.train.GradientDescentOptimizer(0.001)#
         global_step = tf.train.get_or_create_global_step()
         # train_op = optimizer.minimize(loss, global_step=global_step)
 
