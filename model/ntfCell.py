@@ -20,7 +20,7 @@ class ntfCell(LayerRNNCell):
                initializer=None, num_proj=None, proj_clip=None,
                num_unit_shards=None, num_proj_shards=None,
                forget_bias=1.0, state_is_tuple=True,
-               activation=None, reuse=None, name=None, num_var = 11,#n_seg=5,
+               activation=None, reuse=None, name=None, num_var = 16,#n_seg=5,
                max_vals = [], all_seg_lens = [],
                 dtype=None, **kwargs):
     """Initialize the parameters for an NTF cell.
@@ -315,14 +315,6 @@ class ntfCell(LayerRNNCell):
     unscaled_inputs = tf.Print(unscaled_inputs,[unscaled_inputs,tf.shape(unscaled_inputs)],"unscaled_inputs1",summarize=10,first_n=10)
     unscaled_inputs = tf.reshape(unscaled_inputs,[-1,self._n_seg,5])#32,45,2
 
-    #Fixed variables
-    T = tf.constant(10.0,name="T")
-    seg_len = self._seg_lens
-    tau = tf.constant(12.,name="tau")
-    nu = tf.constant(35.,name="nu")
-    kappa = tf.constant(13.,name="kappa")
-    delta = tf.constant(1.4,name="delta")
-
 
     flow_scaling = tf.constant(12000.0,name="flow_scaling") #from (0,1) to..
     density_scaling = tf.constant(40.0,name="density_scaling")
@@ -337,8 +329,23 @@ class ntfCell(LayerRNNCell):
     g = tf.constant(10.0,name="g") * traffic_variables[:,:,5]
 
     lane_num = tf.constant(6.0,name="lane_num") * traffic_variables[:,:,6]
+    T = tf.constant(20.0,name="T") * traffic_variables[:,:,7]
+    seg_len = self._seg_lens
+    tau = tf.constant(30.,name="tau") * traffic_variables[:,:,8]
+    nu = tf.constant(100.,name="nu") * traffic_variables[:,:,9]
+    kappa = tf.constant(30.,name="kappa") * traffic_variables[:,:,10]
+    delta = tf.constant(3.0,name="delta") * traffic_variables[:,:,11]
+    #Fixed variables
+    # T = tf.constant(10.0,name="T") #* traffic_variables[:,:,7]
+    # seg_len = self._seg_lens
+    # tau = tf.constant(12.,name="tau") #* traffic_variables[:,:,8]
+    # nu = tf.constant(35.,name="nu") #* traffic_variables[:,:,9]
+    # kappa = tf.constant(13.,name="kappa") #* traffic_variables[:,:,10]
+    # delta = tf.constant(1.4,name="delta") #* traffic_variables[:,:,11]
+
     lane_num = tf.Print(lane_num,[lane_num,tf.math.reduce_max(lane_num),tf.shape(lane_num)],"lane_num",summarize=10,first_n=10)
     seg_len = tf.Print(seg_len,[seg_len,tf.math.reduce_max(seg_len),tf.shape(seg_len)],"seg_len",summarize=10,first_n=10)
+
 
 
     current_flows = tf.multiply(unscaled_inputs[:,:,0],120.0)
