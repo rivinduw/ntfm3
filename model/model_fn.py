@@ -87,6 +87,43 @@ def model_fn(mode, inputs, params, reuse=False):
     # losses = tf.boolean_mask(losses, feature_mask)
     # predicted_outputs = tf.reshape(tf.boolean_mask(predicted_outputs, feature_mask),[params.batch_size,params.window_size//18,-1])
     feature_mask = labels > 1e-6
+
+    #for volume accuracy
+    volume_mask = np.full((params.batch_size,params.window_size,params.num_cols), False)
+    volume_mask[:,:,::5] = True
+    volume_mask = tf.math.logical_and(feature_mask,volume_mask)
+    volume_outputs = tf.boolean_mask(predicted_outputs,volume_mask)
+    volume_labels = tf.boolean_mask(labels,volume_mask)
+    volume_accuracy = 1 - tf.reduce_mean(tf.clip_by_value(tf.abs((volume_labels - volume_outputs)/ (volume_labels+1e-6)),0,1))
+    # for occupancy accuracy
+    occ_mask = np.full((params.batch_size,params.window_size,params.num_cols), False)
+    occ_mask[:,:,1::5] = True
+    occ_mask = tf.math.logical_and(feature_mask,occ_mask)
+    occ_outputs = tf.boolean_mask(predicted_outputs,occ_mask)
+    occ_labels = tf.boolean_mask(labels,occ_mask)
+    occ_accuracy = 1 - tf.reduce_mean(tf.clip_by_value(tf.abs((occ_labels - occ_outputs)/ (occ_labels+1e-6)),0,1))
+    # for speed accuracy
+    speed_mask = np.full((params.batch_size,params.window_size,params.num_cols), False)
+    speed_mask[:,:,2::5] = True
+    speed_mask = tf.math.logical_and(feature_mask,speed_mask)
+    speed_outputs = tf.boolean_mask(predicted_outputs,speed_mask)
+    speed_labels = tf.boolean_mask(labels,speed_mask)
+    speed_accuracy = 1 - tf.reduce_mean(tf.clip_by_value(tf.abs((speed_labels - speed_outputs)/ (speed_labels+1e-6)),0,1))
+    # for r_in accuracy
+    rin_mask = np.full((params.batch_size,params.window_size,params.num_cols), False)
+    rin_mask[:,:,3::5] = True
+    rin_mask = tf.math.logical_and(feature_mask,rin_mask)
+    rin_outputs = tf.boolean_mask(predicted_outputs,rin_mask)
+    rin_labels = tf.boolean_mask(labels,rin_mask)
+    rin_accuracy = 1 - tf.reduce_mean(tf.clip_by_value(tf.abs((rin_labels - rin_outputs)/ (rin_labels+1e-6)),0,1))
+    # for rout accuracy
+    rout_mask = np.full((params.batch_size,params.window_size,params.num_cols), False)
+    rout_mask[:,:,4::5] = True
+    rout_mask = tf.math.logical_and(feature_mask,rout_mask)
+    rout_outputs = tf.boolean_mask(predicted_outputs,rout_mask)
+    rout_labels = tf.boolean_mask(labels,rout_mask)
+    rout_accuracy = 1 - tf.reduce_mean(tf.clip_by_value(tf.abs((rout_labels - rout_outputs)/ (rout_labels+1e-6)),0,1))
+
     predicted_outputs = tf.Print(predicted_outputs,[predicted_outputs,tf.math.reduce_max(predicted_outputs),tf.shape(predicted_outputs)],"predicted_outputs-premask",summarize=12,first_n=20)
     labels = tf.Print(labels,[labels,tf.math.reduce_max(labels),tf.shape(labels)],"labels-premask",summarize=12,first_n=20)
     # label_mask = np.full((params.batch_size,params.window_size,params.num_cols), False)
@@ -133,11 +170,15 @@ def model_fn(mode, inputs, params, reuse=False):
         #   tf.summary.histogram(v.name, v)
         #   tf.summary.histogram(v.name + '_grad', g)
         # def ClipIfNotBad(grad):
-            # return tf.where(tf.is_finite(grad), grad, 0.5*tf.ones_like(grad))
+        #     return tf.clip_by_value(tf.where(tf.is_finite(grad), grad, 0.5*tf.ones_like(grad)),-1., 1.)
             # return tf.where(tf.is_nan(grad), tf.zeros_like(grad), grad)
         #     tf.cond(tf.reduce_sum(tf.cast(tf.math.logical_not(tf.is_finite(grad)),tf.float32))>0,lambda: grad,lambda: 0.5*tf.ones_like(grad))#tf.is_finite(tf.reduce_sum(grad)
         # gradients = [ClipIfNotBad(grad) for grad in gradients]
         # gradients = [tf.clip_by_value(grad, -1., 1.) for grad in gradients]
+        # grad1 = gradients
+        # var1 = variables
+        # gradients = [ClipIfNotBad(grad) for grad,var in zip(grad1, var1)]
+        # variables = [var for grad,var in zip(gradients, variables)]
 
         # gradients = tf.where(tf.is_nan(gradients), tf.zeros_like(gradients), gradients)
         # def replace_none_with_zero(l):
@@ -162,7 +203,12 @@ def model_fn(mode, inputs, params, reuse=False):
     with tf.variable_scope("metrics"):
         metrics = {
             'accuracy': tf.metrics.mean(accuracy),
-            'loss': tf.metrics.mean(loss)
+            'loss': tf.metrics.mean(loss),
+            'volume_acc': tf.metrics.mean(volume_accuracy),
+            'occ_accuracy': tf.metrics.mean(occ_accuracy),
+            'speed_acc': tf.metrics.mean(speed_accuracy),
+            'rin_accuracy': tf.metrics.mean(rin_accuracy),
+            'rout_accuracy': tf.metrics.mean(rout_accuracy)
         }
 
     # Group the update ops for the tf.metrics

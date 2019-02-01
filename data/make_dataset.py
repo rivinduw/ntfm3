@@ -62,7 +62,7 @@ def make_dataset(datadir = '/home/rwee015/Documents/Data/DataFromMikeSept2015/ex
     del someSegs
     del unstackedSegs
 
-    # allData.fillna(method='pad',inplace=True)
+    allDataIn = allData.fillna(0.0)#method='pad',inplace=False)
     allData.fillna(0.0,inplace=True)
 
     train_size = int(float(train_frac)*len(allData))
@@ -72,10 +72,10 @@ def make_dataset(datadir = '/home/rwee015/Documents/Data/DataFromMikeSept2015/ex
     mean_vals = allData.iloc[:train_size,:][allData.iloc[:train_size,:]>0.0001].mean(axis=0).fillna(0.0)
     pd.DataFrame(max_vals).T.to_csv('data/max_vals.csv',index=False)
 
-    data_in_train = allData.iloc[:train_size-steps,:]
+    data_in_train = allDataIn.iloc[:train_size-steps,:]
     data_out_train = allData.iloc[steps:train_size,:]
 
-    data_in_test = allData.iloc[train_size:-steps,:]
+    data_in_test = allDataIn.iloc[train_size:-steps,:]
     data_out_test = allData.iloc[train_size+steps:,:]
 
     print("writing training data to file")
