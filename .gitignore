@@ -7,8 +7,6 @@ experiments/train.log
 model/__pycache__
 model/.ipynb_checkpoints
 data/processedFiles
-data/test
-data/train
 input_batch.csv
 labels.csv
 meanAcc.csv
