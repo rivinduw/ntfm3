@@ -23,7 +23,7 @@ def build_model(mode, inputs, params):
     input_batch = inputs['input_batch']
 
     if params.model_version == 'lstm':
-        lstm_cell = ntfCell(params.num_cols,num_var = 13,max_vals = params.max_vals, all_seg_lens = params.seg_lens)#,use_peepholes=True,cell_clip=3.0)
+        lstm_cell = ntfCell(params.num_cols,num_var = 13,max_vals = params.max_vals, all_seg_lens = params.seg_lens,use_peepholes=True,cell_clip=3.0)
         # lstm_cell = LSTMCell2(params.lstm_num_units)#,use_peepholes=True,cell_clip=3.0)
 
         init_state = lstm_cell.zero_state(params.batch_size, dtype=tf.float32)
@@ -125,7 +125,7 @@ def model_fn(mode, inputs, params, reuse=False):
     rout_accuracy = 1 - tf.reduce_mean(tf.clip_by_value(tf.abs((rout_labels - rout_outputs)/ (rout_labels+1e-6)),0,1))
 
     predicted_outputs = tf.Print(predicted_outputs,[predicted_outputs,tf.math.reduce_max(predicted_outputs),tf.shape(predicted_outputs)],"predicted_outputs-premask",summarize=12,first_n=20)
-    labels = tf.Print(labels,[labels,tf.math.reduce_max(labels),tf.shape(labels)],"labels-premask",summarize=12,first_n=20)
+    labels = tf.Print(labels,[labels,tf.math.reduce_max(labels),tf.shape(labels)],"labels-premask",summarize=12,first_n=10)
     # label_mask = np.full((params.batch_size,params.window_size,params.num_cols), False)
     # label_mask[:,::18,::5]=True
     # label_mask[:,::18,1::5]=True
@@ -136,7 +136,7 @@ def model_fn(mode, inputs, params, reuse=False):
 
     # predicted_outputs = tf.boolean_mask(predicted_outputs, feature_mask)
     # labels = tf.boolean_mask(labels, feature_mask)
-    labels = tf.Print(labels,[labels,tf.math.reduce_max(labels),tf.shape(labels)],"labels",summarize=12,first_n=20)
+    labels = tf.Print(labels,[labels,tf.math.reduce_max(labels),tf.shape(labels)],"labels",summarize=12,first_n=10)
     predicted_outputs = tf.Print(predicted_outputs,[predicted_outputs,tf.math.reduce_max(predicted_outputs),tf.shape(predicted_outputs)],"predicted_outputs",summarize=12,first_n=20)
 
     losses = tf.square(predicted_outputs-labels)
@@ -159,6 +159,7 @@ def model_fn(mode, inputs, params, reuse=False):
         ,0,1))
     accuracy = 1 - mape
 
+    all_grad = 0
     # Define training step that minimizes the loss with the Adam optimizer
     if is_training:
         optimizer = tf.train.GradientDescentOptimizer(params.learning_rate)#tf.train.AdamOptimizer(params.learning_rate)#RMSPropOptimizer(0.001)#AdamOptimizer(params.learning_rate)#tf.train.GradientDescentOptimizer(0.001)#
@@ -166,6 +167,9 @@ def model_fn(mode, inputs, params, reuse=False):
         # train_op = optimizer.minimize(loss, global_step=global_step)
 
         gradients, variables = zip(*optimizer.compute_gradients(loss))
+        #
+        all_grad = optimizer.compute_gradients(loss)
+
         # for g, v in zip(gradients,variables):
         #   tf.summary.histogram(v.name, v)
         #   tf.summary.histogram(v.name + '_grad', g)
@@ -187,9 +191,10 @@ def model_fn(mode, inputs, params, reuse=False):
         # gradients = [0.0 if i==None else i for i in gradients]
         # gradients = [tf.where(tf.is_nan(grad), tf.zeros_like(grad), grad) for grad in gradients]
 
-        # gradients = tf.Print(gradients,[gradients,tf.math.reduce_mean(gradients)],"gradients",summarize=10,first_n=10)
+        # gradients = tf.Print(gradients,[gradients],"gradients",summarize=20,first_n=20)
 
         gradients, _ = tf.clip_by_global_norm(gradients, 5.0) #
+
         train_op = optimizer.apply_gradients(zip(gradients, variables))
         #clip by value
         # grads = optimizer.compute_gradients(loss)
@@ -236,6 +241,7 @@ def model_fn(mode, inputs, params, reuse=False):
     model_spec['metrics_init_op'] = metrics_init_op
     model_spec['metrics'] = metrics
     model_spec['update_metrics'] = update_metrics_op
+    model_spec['all_grad'] = all_grad
     model_spec['summary_op'] = tf.summary.merge_all()
 
 
