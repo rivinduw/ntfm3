@@ -28,6 +28,7 @@ def train_sess(sess, model_spec, num_steps, writer, params):
     metrics = model_spec['metrics']
     summary_op = model_spec['summary_op']
     global_step = tf.train.get_global_step()
+    all_grad = model_spec['all_grad']
 
     # Load the training dataset into the pipeline and initialize the metrics local variables
     sess.run(model_spec['iterator_init_op'])
@@ -43,6 +44,7 @@ def train_sess(sess, model_spec, num_steps, writer, params):
                                                               summary_op, global_step])
             # Write summaries for tensorboard
             writer.add_summary(summ, global_step_val)
+            print(all_grad)
         else:
             _, _, loss_val = sess.run([train_op, update_metrics, loss])
         # Log the loss in the tqdm progress bar

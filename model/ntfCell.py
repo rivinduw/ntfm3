@@ -304,14 +304,14 @@ class ntfCell(LayerRNNCell):
     inputs = tf.Print(inputs,[inputs,tf.shape(inputs)],"inputs",summarize=10,first_n=10)
     # # self._max_values = tf.Print(self._max_values,[self._max_values,tf.shape(self._max_values)],"_max_values",summarize=10,first_n=10)
     #
-    # stacked_inputs = tf.stack([inputs, m_prev], axis=2)
+    stacked_inputs = tf.stack([inputs, m_prev], axis=2)
     # stacked_inputs = tf.Print(stacked_inputs,[stacked_inputs,tf.shape(stacked_inputs)],"stacked_inputs",summarize=10,first_n=10)
     # unscaled_inputs = tf.reduce_sum(tf.multiply(stacked_inputs,att_c),axis=2) #m_prev
     # unscaled_inputs = m_prev + tf.multiply(att_c,inputs)#boundry[:,2:3]*inputs + (1.-boundry[:,2:3])*m_prev #tf.multiply(stacked_inputs,att_c)
 
     #residual add tanh
 
-    att_c = sigmoid(-inputs*1000.0+1000.0)#tf.math.tanh
+    att_c = tf.stack([sigmoid(-inputs*1000.0+1000.0),sigmoid(inputs*1000.0-1000.0)],axis=2) #* att_c#tf.math.tanh
     # att_c = tf.Print(att_c,[att_c,tf.shape(att_c)],"att_c",summarize=10,first_n=10)
     #att_b = tf.math.tanh(inputs)
     # att_b = tf.reshape(traffic_variables[:,:,5:5+5],[-1,60])
@@ -324,7 +324,8 @@ class ntfCell(LayerRNNCell):
     # inputs = tf.stop_gradient(inputs)
     #m_prev = tf.stop_gradient(m_prev)
     #att_c = tf.stop_gradient(att_c)
-    unscaled_inputs = inputs + tf.multiply(att_c,m_prev)
+    unscaled_inputs = tf.reduce_sum(stacked_inputs * att_c,axis=2)
+    # unscaled_inputs = inputs + tf.multiply(att_c,m_prev)
     # unscaled_inputs = inputs+ tf.reduce_mean(att_c)*0 + 0*m_prev#*(self._max_values+1e-6)
     unscaled_inputs = tf.Print(unscaled_inputs,[unscaled_inputs,tf.shape(unscaled_inputs)],"unscaled_inputs1",summarize=10,first_n=10)
     unscaled_inputs = tf.reshape(unscaled_inputs,[-1,self._n_seg,5])#32,45,2
