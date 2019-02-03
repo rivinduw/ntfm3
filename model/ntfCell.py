@@ -416,11 +416,7 @@ class ntfCell(LayerRNNCell):
     future_flows = tf.multiply(future_rho,future_vel*lane_num)#tf.divide(tf.multiply(future_rho,future_vel),tf.constant(4.0))
 
     future_volumes = tf.truediv(future_flows,120.0)
-<<<<<<< HEAD
     future_occupancies = tf.truediv(future_rho,g+1e-3)
-=======
-    future_occupancies = future_rhotf.truediv(future_rho,g+1e-3)
->>>>>>> fef4d6ac811693cb10dcb2aad0de02dc38bb6cee
 
     future_states = tf.stack([future_volumes,future_occupancies,future_vel,future_r_in,future_r_out],axis=2)
 
