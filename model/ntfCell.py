@@ -367,11 +367,7 @@ class ntfCell(LayerRNNCell):
     current_velocities = unscaled_inputs[:,:,2]
 
     current_densities =  tf.truediv(current_flows, current_velocities*lane_num + 1e-6) #unscaled_inputs[:,:,1] * g#tf.truediv(current_flows, current_velocities*lane_num + 1e-6)
-<<<<<<< HEAD
     g = tf.truediv(current_densities,unscaled_inputs[:,:,1]+1e-3)
-=======
-    g = tf.truediv(current_densities,unscaled_inputs[:,:,0])
->>>>>>> 6efac5e3c8928105af6462bb3e1cae35276e260d
     g = tf.Print(g,[g,tf.math.reduce_mean(g)],"g",summarize=10,first_n=10)
 
 
@@ -420,11 +416,7 @@ class ntfCell(LayerRNNCell):
     future_flows = tf.multiply(future_rho,future_vel*lane_num)#tf.divide(tf.multiply(future_rho,future_vel),tf.constant(4.0))
 
     future_volumes = tf.truediv(future_flows,120.0)
-<<<<<<< HEAD
     future_occupancies = future_rhotf.truediv(future_rho,g+1e-3)
-=======
-    future_occupancies = tf.truediv(future_rho,g+1e-6)#future_rho#
->>>>>>> 6efac5e3c8928105af6462bb3e1cae35276e260d
 
     future_states = tf.stack([future_volumes,future_occupancies,future_vel,future_r_in,future_r_out],axis=2)
 
