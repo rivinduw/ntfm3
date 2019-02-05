@@ -124,27 +124,30 @@ def model_fn(mode, inputs, params, reuse=False):
     rout_labels = tf.boolean_mask(labels,rout_mask)
     rout_accuracy = 1 - tf.reduce_mean(tf.clip_by_value(tf.abs((rout_labels - rout_outputs)/ (rout_labels+1e-6)),0,1))
 
-    predicted_outputs = tf.Print(predicted_outputs,[predicted_outputs,tf.math.reduce_max(predicted_outputs),tf.shape(predicted_outputs)],"predicted_outputs-premask",summarize=12,first_n=20)
-    labels = tf.Print(labels,[labels,tf.math.reduce_max(labels),tf.shape(labels)],"labels-premask",summarize=12,first_n=10)
+    # predicted_outputs = tf.Print(predicted_outputs,[predicted_outputs,tf.math.reduce_max(predicted_outputs),tf.shape(predicted_outputs)],"predicted_outputs-premask",summarize=12,first_n=20)
+    # labels = tf.Print(labels,[labels,tf.math.reduce_max(labels),tf.shape(labels)],"labels-premask",summarize=12,first_n=10)
     # label_mask = np.full((params.batch_size,params.window_size,params.num_cols), False)
     # label_mask[:,::18,::5]=True
     # label_mask[:,::18,1::5]=True
     # labels = tf.reshape(tf.boolean_mask(labels, label_mask),[params.batch_size,params.window_size//18,-1])
-    predicted_outputs = tf.boolean_mask(predicted_outputs, feature_mask)
-    labels            = tf.boolean_mask(labels, feature_mask)
+    predicted_outputs_masked = tf.boolean_mask(predicted_outputs, feature_mask)
+    labels_masked            = tf.boolean_mask(labels, feature_mask)
 
 
     # predicted_outputs = tf.boolean_mask(predicted_outputs, feature_mask)
     # labels = tf.boolean_mask(labels, feature_mask)
-    labels = tf.Print(labels,[labels,tf.math.reduce_max(labels),tf.shape(labels)],"labels",summarize=12,first_n=10)
-    predicted_outputs = tf.Print(predicted_outputs,[predicted_outputs,tf.math.reduce_max(predicted_outputs),tf.shape(predicted_outputs)],"predicted_outputs",summarize=12,first_n=20)
+    labels_masked = tf.Print(labels_masked,[labels_masked,tf.math.reduce_max(labels_masked),tf.shape(labels_masked)],"labels_masked",summarize=12,first_n=10)
+    predicted_outputs_masked = tf.Print(predicted_outputs_masked,[predicted_outputs_masked,tf.math.reduce_max(predicted_outputs_masked),tf.shape(predicted_outputs_masked)],"predicted_outputs_masked",summarize=12,first_n=20)
+    volume_accuracy = tf.Print(volume_accuracy,[volume_accuracy,tf.math.reduce_max(volume_accuracy),tf.shape(volume_accuracy)],"volume_accuracy",summarize=12,first_n=20)
+    occ_accuracy = tf.Print(occ_accuracy,[occ_accuracy,tf.math.reduce_max(occ_accuracy),tf.shape(occ_accuracy)],"occ_accuracy",summarize=12,first_n=20)
+    speed_accuracy = tf.Print(speed_accuracy,[speed_accuracy,tf.math.reduce_max(speed_accuracy),tf.shape(speed_accuracy)],"speed_accuracy",summarize=12,first_n=20)
 
-    losses = tf.square(predicted_outputs-labels)
+    losses = tf.square(predicted_outputs_masked-labels_masked)
     # weights = tf.trainable_variables()
     # lossL2 = tf.add_n([tf.nn.l2_loss(v) for v in weights])*0.001
 
     # predicted_outputs = tf.Print(predicted_outputs,[predicted_outputs,tf.shape(predicted_outputs)],"predicted_outputs-for-loss",summarize=10,first_n=10)
-    losses = tf.Print(losses,[losses,tf.shape(losses)],"losses",summarize=10,first_n=10)
+    # losses = tf.Print(losses,[losses,tf.shape(losses)],"losses",summarize=10,first_n=10)
     # losses = tf.square(predicted_outputs-labels)#tf.losses.mean_squared_error(predicted_outputs,labels)
     # mask = tf.sequence_mask(sentence_lengths)
     # timestep_mask = np.full((32,120,5), True)
@@ -155,7 +158,7 @@ def model_fn(mode, inputs, params, reuse=False):
     TINY = 1e-6
     mape = tf.reduce_mean(
         tf.clip_by_value(
-        tf.abs((labels - predicted_outputs)/ (labels+TINY))
+        tf.abs((labels_masked - predicted_outputs_masked)/ (labels_masked+TINY))
         ,0,1))
     accuracy = 1 - mape
 
@@ -168,7 +171,7 @@ def model_fn(mode, inputs, params, reuse=False):
 
         gradients, variables = zip(*optimizer.compute_gradients(loss))
         #
-        all_grad = optimizer.compute_gradients(loss)
+        # all_grad = optimizer.compute_gradients(loss)
 
         # for g, v in zip(gradients,variables):
         #   tf.summary.histogram(v.name, v)
@@ -241,7 +244,7 @@ def model_fn(mode, inputs, params, reuse=False):
     model_spec['metrics_init_op'] = metrics_init_op
     model_spec['metrics'] = metrics
     model_spec['update_metrics'] = update_metrics_op
-    model_spec['all_grad'] = all_grad
+    # model_spec['all_grad'] = all_grad
     model_spec['summary_op'] = tf.summary.merge_all()
 
 
