@@ -31,9 +31,9 @@ def make_dataset(datadir = '/home/rwee015/Documents/Data/DataFromMikeSept2015/ex
 
         print("found",len(someSegs.groupby(['carriagewaySegmentId']).mean()),"of",len(roadSegs),"segments")
 
-        unstackedSegs = someSegs.groupby(['lastReadingTime','carriagewaySegmentId']).mean().groupby([pd.Grouper(freq='3min', level=0),"carriagewaySegmentId"]).mean().unstack()
+        unstackedSegs = someSegs.groupby(['lastReadingTime','carriagewaySegmentId']).mean().groupby([pd.Grouper(freq='10S', level=0),"carriagewaySegmentId"]).mean().unstack()
 
-        unstackedSegs = unstackedSegs.resample('10S').asfreq()#.ffill()#
+        unstackedSegs = unstackedSegs.resample('10S').mean()#.ffill()#
 
         getCols = ['totalVolume','averageOccupancy','averageSpeed','r_in','r_out']
         shortCols = ['q','o','s','r','f']
@@ -69,7 +69,7 @@ def make_dataset(datadir = '/home/rwee015/Documents/Data/DataFromMikeSept2015/ex
     print("train size:",str(train_size))
 
     max_vals = allData.iloc[:train_size,:].max(axis=0)
-    mean_vals = allData.iloc[:train_size,:][allData.iloc[:train_size,:]>0.0001].mean(axis=0).fillna(0.0)
+    mean_vals = allData.iloc[:train_size,:][allData.iloc[:train_size,:]>0.0001].median(axis=0).fillna(0.0)
     pd.DataFrame(max_vals).T.to_csv('data/max_vals.csv',index=False)
 
     data_in_train = allDataIn.iloc[:train_size-steps,:]
