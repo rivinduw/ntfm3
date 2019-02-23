@@ -58,11 +58,18 @@ def input_fn(mode, inputs, labels, params):
     dataset = dataset.apply(tf.contrib.data.sliding_window_batch(window_size=params.window_size, window_shift=1)) #360*10s = 1hour
     #tf.data.Dataset.window(size=window_size, shift=window_shift, stride=window_stride).flat_map(lambda x: x.batch(window.size))
 
-    dataset = (dataset
-        .shuffle(buffer_size=buffer_size)
-        .batch(params.batch_size)
-        .prefetch(2)  # make sure you always have one batch ready to serve
-    )
+    if mode=='eval':
+        dataset = (dataset
+            .repeat()
+            .batch(params.batch_size)
+        )
+    else:
+        dataset = (dataset
+            .shuffle(buffer_size=buffer_size)
+            .batch(params.batch_size)
+            .prefetch(1)  # make sure you always have one batch ready to serve
+        )
+
 
     # Create initializable iterator from this dataset so that we can reset at each epoch
     iterator = dataset.make_initializable_iterator()

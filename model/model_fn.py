@@ -23,17 +23,18 @@ def build_model(mode, inputs, params):
     input_batch = inputs['input_batch']
 
     if params.model_version == 'lstm':
-        lstm_cell = ntfCell(params.num_cols,num_var = 13,max_vals = params.max_vals, all_seg_lens = params.seg_lens,use_peepholes=True,cell_clip=3.0)
+        lstm_cell = ntfCell(params.num_cols,num_var = 14,max_vals = params.max_vals, all_seg_lens = params.seg_lens,use_peepholes=True,cell_clip=100.0)
         # lstm_cell = LSTMCell2(params.lstm_num_units)#,use_peepholes=True,cell_clip=3.0)
 
-        init_state = lstm_cell.zero_state(params.batch_size, dtype=tf.float32)
-        init_state = tf.identity(init_state, 'init_state') #Actually it works without this line. But it can be useful
-        _lstm_state_ = tf.contrib.rnn.LSTMStateTuple(init_state[0, :, :], init_state[1,:,:]+ params.mean_vals)
+        # init_state = lstm_cell.zero_state(params.batch_size, dtype=tf.float32)
+        # init_state = tf.identity(init_state, 'init_state') #Actually it works without this line. But it can be useful
+        # _lstm_state_ = tf.contrib.rnn.LSTMStateTuple(init_state[0, :, :], init_state[1,:,:]+ params.mean_vals)
 
         # initial_state[1] = initial_state[1] + params.max_vals
         # initial_state = [(tf.add(state[0],tf.ones_like(state[0])*params.max_vals), state[1]) for state in initial_state]
-
-        rnn_outputs, rnn_states  = tf.nn.dynamic_rnn(lstm_cell, input_batch, dtype=tf.float32,initial_state=_lstm_state_)
+        #input_batch = tf.truediv(tf.log(input_batch+1.0),tf.log(tf.convert_to_tensor(params.max_vals)+1.0)+1e-6)
+        input_batch = tf.truediv(input_batch,tf.convert_to_tensor(params.max_vals)+1e-6)
+        rnn_outputs, rnn_states  = tf.nn.dynamic_rnn(lstm_cell, input_batch, dtype=tf.float32)#,initial_state=_lstm_state_)
 
         # # Compute logits from the output of the LSTM
         # logits = tf.layers.dense(output, params.number_of_tags)
@@ -43,7 +44,7 @@ def build_model(mode, inputs, params):
         # apply projection to every timestep.
         # predicted_outputs = tf.map_fn(final_projection, rnn_outputs)
         # predicted_outputs =  tf.layers.dense(rnn_outputs, params.rnn_output_size,activation='linear')
-        predicted_outputs =  rnn_outputs#tf.layers.dense(rnn_outputs, params.rnn_output_size)
+        predicted_outputs =  rnn_outputs*tf.convert_to_tensor(params.max_vals)#*200.0#*tf.log(tf.convert_to_tensor(params.max_vals)+1.0)#tf.layers.dense(rnn_outputs, params.rnn_output_size)
 
     else:
         raise NotImplementedError("Unknown model version: {}".format(params.model_version))
@@ -86,52 +87,55 @@ def model_fn(mode, inputs, params, reuse=False):
     # feature_mask[:,::18,1::5]=True
     # losses = tf.boolean_mask(losses, feature_mask)
     # predicted_outputs = tf.reshape(tf.boolean_mask(predicted_outputs, feature_mask),[params.batch_size,params.window_size//18,-1])
-    feature_mask = labels > 1e-6
+    feature_mask = labels > 0.0#1e-6
+
+    predicted_outputs_exp = predicted_outputs#tf.exp(predicted_outputs)
 
     #for volume accuracy
     volume_mask = np.full((params.batch_size,params.window_size,params.num_cols), False)
     volume_mask[:,:,::5] = True
     volume_mask = tf.math.logical_and(feature_mask,volume_mask)
-    volume_outputs = tf.boolean_mask(predicted_outputs,volume_mask)
-    volume_labels = tf.boolean_mask(labels,volume_mask)
+    volume_outputs = tf.boolean_mask(predicted_outputs_exp,volume_mask)*10.0
+    volume_labels = tf.boolean_mask(labels,volume_mask)*10.0
     volume_accuracy = 1 - tf.reduce_mean(tf.clip_by_value(tf.abs((volume_labels - volume_outputs)/ (volume_labels+1e-6)),0,1))
     # for occupancy accuracy
     occ_mask = np.full((params.batch_size,params.window_size,params.num_cols), False)
     occ_mask[:,:,1::5] = True
     occ_mask = tf.math.logical_and(feature_mask,occ_mask)
-    occ_outputs = tf.boolean_mask(predicted_outputs,occ_mask)
+    occ_outputs = tf.boolean_mask(predicted_outputs_exp,occ_mask)
     occ_labels = tf.boolean_mask(labels,occ_mask)
     occ_accuracy = 1 - tf.reduce_mean(tf.clip_by_value(tf.abs((occ_labels - occ_outputs)/ (occ_labels+1e-6)),0,1))
     # for speed accuracy
     speed_mask = np.full((params.batch_size,params.window_size,params.num_cols), False)
     speed_mask[:,:,2::5] = True
     speed_mask = tf.math.logical_and(feature_mask,speed_mask)
-    speed_outputs = tf.boolean_mask(predicted_outputs,speed_mask)
+    speed_outputs = tf.boolean_mask(predicted_outputs_exp,speed_mask)
     speed_labels = tf.boolean_mask(labels,speed_mask)
     speed_accuracy = 1 - tf.reduce_mean(tf.clip_by_value(tf.abs((speed_labels - speed_outputs)/ (speed_labels+1e-6)),0,1))
     # for r_in accuracy
     rin_mask = np.full((params.batch_size,params.window_size,params.num_cols), False)
     rin_mask[:,:,3::5] = True
     rin_mask = tf.math.logical_and(feature_mask,rin_mask)
-    rin_outputs = tf.boolean_mask(predicted_outputs,rin_mask)
+    rin_outputs = tf.boolean_mask(predicted_outputs_exp,rin_mask)
     rin_labels = tf.boolean_mask(labels,rin_mask)
     rin_accuracy = 1 - tf.reduce_mean(tf.clip_by_value(tf.abs((rin_labels - rin_outputs)/ (rin_labels+1e-6)),0,1))
     # for rout accuracy
     rout_mask = np.full((params.batch_size,params.window_size,params.num_cols), False)
     rout_mask[:,:,4::5] = True
     rout_mask = tf.math.logical_and(feature_mask,rout_mask)
-    rout_outputs = tf.boolean_mask(predicted_outputs,rout_mask)
+    rout_outputs = tf.boolean_mask(predicted_outputs_exp,rout_mask)
     rout_labels = tf.boolean_mask(labels,rout_mask)
     rout_accuracy = 1 - tf.reduce_mean(tf.clip_by_value(tf.abs((rout_labels - rout_outputs)/ (rout_labels+1e-6)),0,1))
 
-    predicted_outputs = tf.Print(predicted_outputs,[predicted_outputs,tf.math.reduce_max(predicted_outputs),tf.shape(predicted_outputs)],"predicted_outputs-premask",summarize=12,first_n=20)
-    labels = tf.Print(labels,[labels,tf.math.reduce_max(labels),tf.shape(labels)],"labels-premask",summarize=12,first_n=10)
+    predicted_outputs_exp = tf.Print(predicted_outputs_exp,[predicted_outputs_exp,tf.math.reduce_max(predicted_outputs_exp),tf.shape(predicted_outputs_exp)],"predicted_outputs_exp-premask",summarize=23,first_n=20)
+    labels = tf.Print(labels,[labels,tf.math.reduce_max(labels),tf.shape(labels)],"labels-premask",summarize=23,first_n=10)
     # label_mask = np.full((params.batch_size,params.window_size,params.num_cols), False)
     # label_mask[:,::18,::5]=True
     # label_mask[:,::18,1::5]=True
     # labels = tf.reshape(tf.boolean_mask(labels, label_mask),[params.batch_size,params.window_size//18,-1])
     predicted_outputs_masked = tf.boolean_mask(predicted_outputs, feature_mask)
     labels_masked            = tf.boolean_mask(labels, feature_mask)
+    log_lbl_masked           = labels_masked#tf.boolean_mask(tf.log(labels+1.0), feature_mask)
 
 
     # predicted_outputs = tf.boolean_mask(predicted_outputs, feature_mask)
@@ -142,7 +146,7 @@ def model_fn(mode, inputs, params, reuse=False):
     occ_accuracy = tf.Print(occ_accuracy,[occ_accuracy,tf.math.reduce_max(occ_accuracy),tf.shape(occ_accuracy)],"occ_accuracy",summarize=12,first_n=20)
     speed_accuracy = tf.Print(speed_accuracy,[speed_accuracy,tf.math.reduce_max(speed_accuracy),tf.shape(speed_accuracy)],"speed_accuracy",summarize=12,first_n=20)
 
-    losses = tf.square(predicted_outputs_masked-labels_masked)
+    losses = tf.square(predicted_outputs_masked-log_lbl_masked)
     # weights = tf.trainable_variables()
     # lossL2 = tf.add_n([tf.nn.l2_loss(v) for v in weights])*0.001
 
@@ -162,10 +166,9 @@ def model_fn(mode, inputs, params, reuse=False):
         ,0,1))
     accuracy = 1 - mape
 
-    all_grad = 0
     # Define training step that minimizes the loss with the Adam optimizer
     if is_training:
-        optimizer = tf.train.GradientDescentOptimizer(params.learning_rate)#tf.train.AdamOptimizer(params.learning_rate)#RMSPropOptimizer(0.001)#AdamOptimizer(params.learning_rate)#tf.train.GradientDescentOptimizer(0.001)#
+        optimizer = tf.train.RMSPropOptimizer(params.learning_rate)#tf.train.AdamOptimizer(params.learning_rate)#RMSPropOptimizer(0.001)#AdamOptimizer(params.learning_rate)#tf.train.GradientDescentOptimizer(0.001)#
         global_step = tf.train.get_or_create_global_step()
         # train_op = optimizer.minimize(loss, global_step=global_step)
 
@@ -196,7 +199,7 @@ def model_fn(mode, inputs, params, reuse=False):
 
         # gradients = tf.Print(gradients,[gradients],"gradients",summarize=20,first_n=20)
 
-        gradients, _ = tf.clip_by_global_norm(gradients, 5.0) #
+        gradients, _ = tf.clip_by_global_norm(gradients, 50.0) #
 
         train_op = optimizer.apply_gradients(zip(gradients, variables))
         #clip by value
