@@ -23,7 +23,7 @@ def build_model(mode, inputs, params):
     input_batch = inputs['input_batch']
 
     if params.model_version == 'lstm':
-        lstm_cell = ntfCell(params.num_cols,num_var = 14,max_vals = params.max_vals, all_seg_lens = params.seg_lens,use_peepholes=True,cell_clip=100.0)
+        lstm_cell = ntfCell(params.num_cols,num_var = 14,max_vals = params.max_vals, all_seg_lens = params.seg_lens,use_peepholes=True,cell_clip=3.0)
         # lstm_cell = LSTMCell2(params.lstm_num_units)#,use_peepholes=True,cell_clip=3.0)
 
         # init_state = lstm_cell.zero_state(params.batch_size, dtype=tf.float32)
@@ -44,7 +44,7 @@ def build_model(mode, inputs, params):
         # apply projection to every timestep.
         # predicted_outputs = tf.map_fn(final_projection, rnn_outputs)
         # predicted_outputs =  tf.layers.dense(rnn_outputs, params.rnn_output_size,activation='linear')
-        predicted_outputs =  rnn_outputs*tf.convert_to_tensor(params.max_vals)#*200.0#*tf.log(tf.convert_to_tensor(params.max_vals)+1.0)#tf.layers.dense(rnn_outputs, params.rnn_output_size)
+        predicted_outputs =  tf.multiply(rnn_outputs,tf.convert_to_tensor(params.max_vals))#*200.0#*tf.log(tf.convert_to_tensor(params.max_vals)+1.0)#tf.layers.dense(rnn_outputs, params.rnn_output_size)
 
     else:
         raise NotImplementedError("Unknown model version: {}".format(params.model_version))
@@ -77,7 +77,7 @@ def model_fn(mode, inputs, params, reuse=False):
         # predictions = tf.argmax(logits, -1)
 
 
-
+    max_div = tf.convert_to_tensor(params.max_vals)+1e-6
 
     # Define loss and accuracy (we need to apply a mask to account for padding)
     # losses = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels)
@@ -87,7 +87,7 @@ def model_fn(mode, inputs, params, reuse=False):
     # feature_mask[:,::18,1::5]=True
     # losses = tf.boolean_mask(losses, feature_mask)
     # predicted_outputs = tf.reshape(tf.boolean_mask(predicted_outputs, feature_mask),[params.batch_size,params.window_size//18,-1])
-    feature_mask = labels > 0.0#1e-6
+    feature_mask = labels > 1e-3
 
     predicted_outputs_exp = predicted_outputs#tf.exp(predicted_outputs)
 
@@ -95,8 +95,8 @@ def model_fn(mode, inputs, params, reuse=False):
     volume_mask = np.full((params.batch_size,params.window_size,params.num_cols), False)
     volume_mask[:,:,::5] = True
     volume_mask = tf.math.logical_and(feature_mask,volume_mask)
-    volume_outputs = tf.boolean_mask(predicted_outputs_exp,volume_mask)*10.0
-    volume_labels = tf.boolean_mask(labels,volume_mask)*10.0
+    volume_outputs = tf.boolean_mask(predicted_outputs_exp,volume_mask)#*10.0
+    volume_labels = tf.boolean_mask(labels,volume_mask)#*10.0
     volume_accuracy = 1 - tf.reduce_mean(tf.clip_by_value(tf.abs((volume_labels - volume_outputs)/ (volume_labels+1e-6)),0,1))
     # for occupancy accuracy
     occ_mask = np.full((params.batch_size,params.window_size,params.num_cols), False)
@@ -133,8 +133,8 @@ def model_fn(mode, inputs, params, reuse=False):
     # label_mask[:,::18,::5]=True
     # label_mask[:,::18,1::5]=True
     # labels = tf.reshape(tf.boolean_mask(labels, label_mask),[params.batch_size,params.window_size//18,-1])
-    predicted_outputs_masked = tf.boolean_mask(predicted_outputs, feature_mask)
-    labels_masked            = tf.boolean_mask(labels, feature_mask)
+    predicted_outputs_masked = tf.boolean_mask(predicted_outputs/max_div, feature_mask)
+    labels_masked            = tf.boolean_mask(labels/max_div, feature_mask)
     log_lbl_masked           = labels_masked#tf.boolean_mask(tf.log(labels+1.0), feature_mask)
 
 
@@ -146,7 +146,8 @@ def model_fn(mode, inputs, params, reuse=False):
     occ_accuracy = tf.Print(occ_accuracy,[occ_accuracy,tf.math.reduce_max(occ_accuracy),tf.shape(occ_accuracy)],"occ_accuracy",summarize=12,first_n=20)
     speed_accuracy = tf.Print(speed_accuracy,[speed_accuracy,tf.math.reduce_max(speed_accuracy),tf.shape(speed_accuracy)],"speed_accuracy",summarize=12,first_n=20)
 
-    losses = tf.square(predicted_outputs_masked-log_lbl_masked)
+    losses = tf.square(predicted_outputs_masked - log_lbl_masked)*100.0
+    # losses = 100.0*tf.truediv(losses,labels_masked+1e-6)
     # weights = tf.trainable_variables()
     # lossL2 = tf.add_n([tf.nn.l2_loss(v) for v in weights])*0.001
 
@@ -168,7 +169,7 @@ def model_fn(mode, inputs, params, reuse=False):
 
     # Define training step that minimizes the loss with the Adam optimizer
     if is_training:
-        optimizer = tf.train.RMSPropOptimizer(params.learning_rate)#tf.train.AdamOptimizer(params.learning_rate)#RMSPropOptimizer(0.001)#AdamOptimizer(params.learning_rate)#tf.train.GradientDescentOptimizer(0.001)#
+        optimizer = tf.train.GradientDescentOptimizer(params.learning_rate)#tf.train.AdamOptimizer(params.learning_rate)#RMSPropOptimizer(0.001)#AdamOptimizer(params.learning_rate)#tf.train.GradientDescentOptimizer(0.001)#
         global_step = tf.train.get_or_create_global_step()
         # train_op = optimizer.minimize(loss, global_step=global_step)
 
@@ -199,7 +200,7 @@ def model_fn(mode, inputs, params, reuse=False):
 
         # gradients = tf.Print(gradients,[gradients],"gradients",summarize=20,first_n=20)
 
-        gradients, _ = tf.clip_by_global_norm(gradients, 50.0) #
+        gradients, _ = tf.clip_by_global_norm(gradients, 5.0) #
 
         train_op = optimizer.apply_gradients(zip(gradients, variables))
         #clip by value

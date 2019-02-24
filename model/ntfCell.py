@@ -256,9 +256,12 @@ class ntfCell(LayerRNNCell):
 
     # inputs_scaled = tf.truediv((inputs+1e-12),(self._max_values+1e-6))
     # m_prev_scaled = tf.truediv((m_prev+1e-12),(self._max_values+1e-6))
+    inputs = tf.Print(inputs,[inputs,tf.math.reduce_mean(inputs),tf.math.reduce_max(inputs),tf.math.reduce_min(inputs)],"inputs1",summarize=10,first_n=50)
     stacked_inputs = tf.stack([inputs, m_prev], axis=2)
-    att_a = tf.stack([-sigmoid(inputs*10+10.0),sigmoid(inputs*10-10.0)],axis=2) #* att_c#tf.math.tanh
+    # att_a = tf.stack([-sigmoid(inputs*10+10.0),sigmoid(inputs*10-10.0)],axis=2) #* att_c#tf.math.tanh
+    att_a = tf.stack([sigmoid(inputs*1e9-10),sigmoid(-(inputs*1e9-10))],axis=2) #* att_c#tf.math.tanh
     inputs = tf.reduce_sum(stacked_inputs * att_a,axis=2)
+    inputs = tf.Print(inputs,[inputs,tf.math.reduce_mean(inputs),tf.math.reduce_max(inputs),tf.math.reduce_min(inputs)],"inputs2",summarize=10,first_n=50)
 
     lstm_matrix = math_ops.matmul(inputs, self._kernel)
 
@@ -294,10 +297,10 @@ class ntfCell(LayerRNNCell):
     else:
       m = sigmoid(o) * self._activation(c)
 
-    # m = tf.layers.dropout(m,rate=0.5)
-    # new_m = math_ops.matmul(m, self._kernel_outm)
-    # new_m = nn_ops.bias_add(new_m, self._bias_outm)
-    # new_m = tf.Print(new_m,[new_m,tf.math.reduce_mean(new_m),tf.math.reduce_max(new_m),tf.math.reduce_min(new_m)],"new_m",summarize=10,first_n=50)
+    m = tf.layers.dropout(m,rate=0.5)
+    new_m = math_ops.matmul(m, self._kernel_outm)
+    new_m = tf.nn.relu(nn_ops.bias_add(new_m, self._bias_outm))
+    new_m = tf.Print(new_m,[new_m,tf.math.reduce_mean(new_m),tf.math.reduce_max(new_m),tf.math.reduce_min(new_m)],"new_m",summarize=10,first_n=50)
     #
     # m = new_m
 
@@ -365,19 +368,21 @@ class ntfCell(LayerRNNCell):
     # unscaled_inputs = tf.Print(unscaled_inputs,[unscaled_inputs,tf.math.reduce_max(unscaled_inputs)],"unscaled_inputs1",summarize=10,first_n=10)
     # unscaled_inputs = tf.reshape(unscaled_inputs,[-1,self._n_seg,5])#32,45,2
     unscaled_inputs = inputs*self._max_values
+    unscaled_inputs = tf.reshape(unscaled_inputs,[-1,self._n_seg,5])
+    unscaled_inputs = tf.Print(unscaled_inputs,[unscaled_inputs,tf.math.reduce_mean(unscaled_inputs),tf.math.reduce_max(unscaled_inputs),tf.math.reduce_min(unscaled_inputs)],"unscaled_inputs",summarize=10,first_n=50)
 
 
     flow_scaling = tf.constant(120.0,name="flow_scaling") #from (0,1) to..
-    density_scaling = tf.constant(10.0,name="density_scaling")
+    density_scaling = tf.constant(100.0,name="density_scaling")
 
     # v_f = tf.constant(200.,name="v_f") * tf.expand_dims(tf.reduce_mean(traffic_variables[:,:,0],axis=1),-1)
     # a = tf.constant(3.0,name="a")  *tf.expand_dims(tf.reduce_mean(traffic_variables[:,:,1],axis=1),-1)
     # p_cr = tf.constant(300.0,name="pcr") * tf.expand_dims(tf.reduce_mean(traffic_variables[:,:,2],axis=1),-1)
-    v_f = tf.constant(100.,name="v_f") * traffic_variables[:,:,0]
+    v_f = tf.constant(120.,name="v_f") * traffic_variables[:,:,0]
     v_f =  tf.clip_by_value(v_f,10.0,120.0)
     a = tf.constant(1.0,name="a")  * traffic_variables[:,:,1]
     a =  tf.clip_by_value(a,0.4,4.0)
-    p_cr = tf.constant(10.0,name="pcr") * traffic_variables[:,:,2]
+    p_cr = tf.constant(100.0,name="pcr") * traffic_variables[:,:,2]
     p_cr =  tf.clip_by_value(p_cr,1.0,1200.0)
 
     future_r_in = tf.truediv(flow_scaling * traffic_variables[:,:,3],120.0)
@@ -477,9 +482,11 @@ class ntfCell(LayerRNNCell):
 
     future_states = tf.stack([future_volumes,future_occupancies,future_vel,future_r_in,future_r_out],axis=2)
 
-    #future_states = tf.reshape(future_states,[-1,5*self._n_seg])
+    future_states = tf.reshape(future_states,[-1,5*self._n_seg])
 
-    m = tf.truediv(tf.clip_by_value(future_states,0.0,120.0) , (self._max_values+1e-6)
+    # m = tf.truediv(tf.clip_by_value(future_states,0.1,120.0) , (self._max_values+1e-6))
+    new_m = tf.Print(new_m,[new_m,tf.math.reduce_mean(new_m),tf.math.reduce_max(new_m),tf.math.reduce_min(new_m)],"new_m",summarize=10,first_n=50)
+    m = tf.clip_by_value(new_m,0.0,2.0)
 
     new_state = (LSTMStateTuple(c, m) if self._state_is_tuple else
                  array_ops.concat([c, m], 1))
