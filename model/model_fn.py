@@ -23,18 +23,18 @@ def build_model(mode, inputs, params):
     input_batch = inputs['input_batch']
 
     if params.model_version == 'lstm':
-        lstm_cell = ntfCell(params.num_cols,num_var = 14,max_vals = params.max_vals, all_seg_lens = params.seg_lens,use_peepholes=True,cell_clip=3.0)
+        lstm_cell = ntfCell(params.num_cols,num_var = 14,max_vals = params.max_vals, all_seg_lens = params.seg_lens,use_peepholes=True,cell_clip=5.0)
         # lstm_cell = LSTMCell2(params.lstm_num_units)#,use_peepholes=True,cell_clip=3.0)
 
-        # init_state = lstm_cell.zero_state(params.batch_size, dtype=tf.float32)
-        # init_state = tf.identity(init_state, 'init_state') #Actually it works without this line. But it can be useful
-        # _lstm_state_ = tf.contrib.rnn.LSTMStateTuple(init_state[0, :, :], init_state[1,:,:]+ params.mean_vals)
+        init_state = lstm_cell.zero_state(params.batch_size, dtype=tf.float32)
+        init_state = tf.identity(init_state, 'init_state') #Actually it works without this line. But it can be useful
+        _lstm_state_ = tf.contrib.rnn.LSTMStateTuple(init_state[0, :, :], init_state[1,:,:]+ tf.truediv(params.mean_vals,tf.convert_to_tensor(params.max_vals)+1e-6))
 
         # initial_state[1] = initial_state[1] + params.max_vals
         # initial_state = [(tf.add(state[0],tf.ones_like(state[0])*params.max_vals), state[1]) for state in initial_state]
         #input_batch = tf.truediv(tf.log(input_batch+1.0),tf.log(tf.convert_to_tensor(params.max_vals)+1.0)+1e-6)
         input_batch = tf.truediv(input_batch,tf.convert_to_tensor(params.max_vals)+1e-6)
-        rnn_outputs, rnn_states  = tf.nn.dynamic_rnn(lstm_cell, input_batch, dtype=tf.float32)#,initial_state=_lstm_state_)
+        rnn_outputs, rnn_states  = tf.nn.dynamic_rnn(lstm_cell, input_batch, dtype=tf.float32,initial_state=_lstm_state_)
 
         # # Compute logits from the output of the LSTM
         # logits = tf.layers.dense(output, params.number_of_tags)
@@ -45,6 +45,7 @@ def build_model(mode, inputs, params):
         # predicted_outputs = tf.map_fn(final_projection, rnn_outputs)
         # predicted_outputs =  tf.layers.dense(rnn_outputs, params.rnn_output_size,activation='linear')
         predicted_outputs =  tf.multiply(rnn_outputs,tf.convert_to_tensor(params.max_vals))#*200.0#*tf.log(tf.convert_to_tensor(params.max_vals)+1.0)#tf.layers.dense(rnn_outputs, params.rnn_output_size)
+        predicted_outputs = tf.Print(predicted_outputs,[predicted_outputs,tf.math.reduce_min(predicted_outputs),tf.math.reduce_mean(predicted_outputs),tf.math.reduce_max(predicted_outputs)],"predicted_outputs",summarize=18,first_n=50)
 
     else:
         raise NotImplementedError("Unknown model version: {}".format(params.model_version))
@@ -87,7 +88,7 @@ def model_fn(mode, inputs, params, reuse=False):
     # feature_mask[:,::18,1::5]=True
     # losses = tf.boolean_mask(losses, feature_mask)
     # predicted_outputs = tf.reshape(tf.boolean_mask(predicted_outputs, feature_mask),[params.batch_size,params.window_size//18,-1])
-    feature_mask = labels > 1e-3
+    feature_mask = labels > 1e-6
 
     predicted_outputs_exp = predicted_outputs#tf.exp(predicted_outputs)
 
@@ -146,7 +147,7 @@ def model_fn(mode, inputs, params, reuse=False):
     occ_accuracy = tf.Print(occ_accuracy,[occ_accuracy,tf.math.reduce_max(occ_accuracy),tf.shape(occ_accuracy)],"occ_accuracy",summarize=12,first_n=20)
     speed_accuracy = tf.Print(speed_accuracy,[speed_accuracy,tf.math.reduce_max(speed_accuracy),tf.shape(speed_accuracy)],"speed_accuracy",summarize=12,first_n=20)
 
-    losses = tf.square(predicted_outputs_masked - log_lbl_masked)*100.0
+    losses = tf.square(predicted_outputs_masked - log_lbl_masked)
     # losses = 100.0*tf.truediv(losses,labels_masked+1e-6)
     # weights = tf.trainable_variables()
     # lossL2 = tf.add_n([tf.nn.l2_loss(v) for v in weights])*0.001
