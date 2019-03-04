@@ -14,9 +14,9 @@ def make_dataset(datadir = '/home/rwee015/Documents/Data/DataFromMikeSept2015/ex
 
     print("building dataset")
 
-    onRoad   = ['671', '672','673','674','675', '677','709','937','938','939','940','941'] #'676','936',
-    onRamps  = [  '0',   '0','696',  '0','699',  '0','1121',  '0',  '0','951',  '0','953']
-    offRamps = [  '0','1087',  '0',  '0',  '0','670',   '0','704','950',  '0','952',  '0']
+    onRoad   = [ '672','673','674','675', '677','709','937','938','939','940','941'] #'676','936','671',
+    onRamps  = [   '0','696',  '0','699',  '0','1121',  '0',  '0','951',  '0','953']
+    offRamps = ['1087',  '0',  '0',  '0','670',   '0','704','950',  '0','952',  '0']
 
     roadSegs = list(filter(lambda a: a != '0', set(onRoad+onRamps+offRamps))) #combine and remove 0s
     if not os.path.exists("data/processedFiles/"):
@@ -27,7 +27,7 @@ def make_dataset(datadir = '/home/rwee015/Documents/Data/DataFromMikeSept2015/ex
     for file in files:
         data = pd.read_csv(file,parse_dates=[5])
 
-        someSegs = data.loc[data['carriagewaySegmentId'].isin(roadSegs)]
+        someSegs = data.loc[data['carriagewaySegmentId'].isin(roadSegs)][::10]
 
         print("found",len(someSegs.groupby(['carriagewaySegmentId']).mean()),"of",len(roadSegs),"segments")
 
@@ -68,7 +68,7 @@ def make_dataset(datadir = '/home/rwee015/Documents/Data/DataFromMikeSept2015/ex
     train_size = int(float(train_frac)*len(allData))
     print("train size:",str(train_size))
 
-    max_vals = allData.iloc[:train_size,:][allData.iloc[:train_size,:]>0.0001].quantile(.997,axis=0).fillna(0.0)+1.0
+    max_vals = allData.iloc[:train_size,:][allData.iloc[:train_size,:]>0.0001].quantile(.999,axis=0).fillna(0.0)+1.0
     mean_vals = allData.iloc[:train_size,:][allData.iloc[:train_size,:]>0.0001].median(axis=0).fillna(0.0)
     pd.DataFrame(max_vals).T.to_csv('data/max_vals.csv',index=False)
 

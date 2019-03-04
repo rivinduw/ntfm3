@@ -55,7 +55,7 @@ def input_fn(mode, inputs, labels, params):
     dataset = tf.data.Dataset.zip((inputs, labels))
 
     # Create batches and pad the sentences of different length
-    dataset = dataset.apply(tf.contrib.data.sliding_window_batch(window_size=params.window_size, window_shift=89)) #360*10s = 1hour
+    dataset = dataset.apply(tf.contrib.data.sliding_window_batch(window_size=params.window_size, window_shift=10)) #360*10s = 1hour
     #tf.data.Dataset.window(size=window_size, shift=window_shift, stride=window_stride).flat_map(lambda x: x.batch(window.size))
 
     if mode=='eval':
