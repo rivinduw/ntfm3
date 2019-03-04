@@ -72,7 +72,7 @@ if __name__ == '__main__':
     params.eval_size = params.dev_size
 
     params.buffer_size = 128#params.train_size # buffer size for shuffling
-    params.restore_dir= "experiments/last_weights"#"experiments/best_weights"#"experiments/last_weights"#None#args.restore_dir#"experiments/best_weights"#None#
+    params.restore_dir= None#"experiments/last_weights"#"experiments/best_weights"#"experiments/last_weights"#None#args.restore_dir#"experiments/best_weights"#None#
 
     # Create the two iterators over the two datasets
     train_inputs = input_fn('train', train_x,train_y, params)

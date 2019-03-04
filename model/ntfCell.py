@@ -168,7 +168,7 @@ class ntfCell(LayerRNNCell):
     self._bias_context = self.add_variable(
         "traffic_context/%s" % _BIAS_VARIABLE_NAME,
         shape=[self._num_var*self._n_seg],# * self._n_seg
-        initializer=init_ops.zeros_initializer)
+        initializer=init_ops.ones_initializer)
 
     self._kernel_context2 = self.add_variable(
         "traffic_context2/%s" % _WEIGHTS_VARIABLE_NAME,
