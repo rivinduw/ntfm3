@@ -19,7 +19,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--model_dir', default='experiments',
                     help="Directory containing params.json")
 parser.add_argument('--data_dir', default='data', help="Directory containing the dataset")
-parser.add_argument('--restore_dir', default=None,
+parser.add_argument('--restore_dir', default="experiments/last_weights",
                     help="Optional, directory containing weights to reload before training")
 
 
@@ -72,7 +72,7 @@ if __name__ == '__main__':
     params.eval_size = params.dev_size
 
     params.buffer_size = 128#params.train_size # buffer size for shuffling
-    params.restore_dir= None#"experiments/last_weights"#"experiments/best_weights"#"experiments/last_weights"#None#args.restore_dir#"experiments/best_weights"#None#
+    params.restore_dir= args.restore_dir#"experiments/last_weights"#"experiments/best_weights"#"experiments/last_weights"#None#args.restore_dir#"experiments/best_weights"#None#
 
     # Create the two iterators over the two datasets
     train_inputs = input_fn('train', train_x,train_y, params)
