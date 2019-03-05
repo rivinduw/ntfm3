@@ -67,7 +67,7 @@ def input_fn(mode, inputs, labels, params):
         dataset = (dataset
             .shuffle(buffer_size=buffer_size)
             .batch(params.batch_size)
-            .prefetch(1)  # make sure you always have one batch ready to serve
+            .prefetch(2)  # make sure you always have one batch ready to serve
         )
 
 
