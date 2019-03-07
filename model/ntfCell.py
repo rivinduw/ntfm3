@@ -383,11 +383,11 @@ class ntfCell(LayerRNNCell):
     # a = tf.constant(3.0,name="a")  *tf.expand_dims(tf.reduce_mean(traffic_variables[:,:,1],axis=1),-1)
     # p_cr = tf.constant(300.0,name="pcr") * tf.expand_dims(tf.reduce_mean(traffic_variables[:,:,2],axis=1),-1)
     v_f = tf.constant(120.,name="v_f") * traffic_variables[:,:,0]
-    v_f =  tf.clip_by_value(v_f,90.0,120.0)
+    # v_f =  tf.clip_by_value(v_f,90.0,120.0)
     a = tf.constant(1.4324,name="a")  * traffic_variables[:,:,1]
-    a =  tf.clip_by_value(a,0.5,2.5)
+    # a =  tf.clip_by_value(a,0.5,2.5)
     p_cr = tf.constant(33.5,name="pcr") * traffic_variables[:,:,2]
-    p_cr =  tf.clip_by_value(p_cr,1.0,200.0)
+    # p_cr =  tf.clip_by_value(p_cr,1.0,200.0)
 
     future_r_in = traffic_variables[:,:,3]*flow_scaling#*flow_scaling#tf.truediv(flow_scaling * traffic_variables[:,:,3],120.0)
     future_r_out = traffic_variables[:,:,4]*flow_scaling#*flow_scaling#tf.truediv(flow_scaling * traffic_variables[:,:,4],120.0)
@@ -425,7 +425,7 @@ class ntfCell(LayerRNNCell):
     current_densities = tf.multiply(unscaled_inputs[:,:,1],g)#+0.0*tf.truediv(current_flows, current_velocities*lane_num + 1e-6) # tf.multiply(unscaled_inputs[:,:,1], g)#tf.truediv(current_flows, current_velocities*lane_num + 1e-6) #unscaled_inputs[:,:,1] * g#tf.truediv(current_flows, current_velocities*lane_num + 1e-6)
     # g = tf.truediv(current_densities,unscaled_inputs[:,:,2] + 1e-6)#* traffic_variables[:,:,5]
     g = tf.Print(g,[g,tf.math.reduce_mean(g)],"g",summarize=10,first_n=10)
-    g =  tf.clip_by_value(g,0.02,100.0)
+    g =  tf.clip_by_value(g,0.002,1000.0)
 
 
     r_in = tf.multiply(unscaled_inputs[:,:,3],flow_to_hr)
@@ -477,12 +477,12 @@ class ntfCell(LayerRNNCell):
 
     with tf.name_scope("next_density"):
         future_rho =  current_densities + tf.multiply(tf.truediv(T,tf.multiply(seg_len,lane_num)),(prev_flows - current_flows + r_in - r_out))
-        future_rho =   tf.clip_by_value(future_rho,0.01,1000.0)
+        # future_rho =   tf.clip_by_value(future_rho,0.0,1000.0)
         future_rho = tf.Print(future_rho,[future_rho,tf.math.reduce_max(future_rho),tf.shape(future_rho)],"future_rho",summarize=10,first_n=10)#[32 45]
 
     with tf.name_scope("future_velocity"):
         stat_speed =  tf.multiply( v_f, tf.exp( (tf.multiply(tf.truediv(-1.0,a),tf.math.pow(tf.truediv(current_densities,p_cr),a)))))
-        stat_speed =  tf.clip_by_value(stat_speed,5.0,120.0)
+        # stat_speed =  tf.clip_by_value(stat_speed,5.0,120.0)
         stat_speed = tf.Print(stat_speed,[stat_speed,tf.math.reduce_max(stat_speed),tf.shape(stat_speed)],"stat_speed",summarize=10,first_n=10)
 
         future_vel = current_velocities + ( (T/tau) * (stat_speed - current_velocities) )\
@@ -490,7 +490,7 @@ class ntfCell(LayerRNNCell):
                         - ( (nu*T/(tau*seg_len)) * ( (next_densities - current_densities) / (current_densities + kappa) )  )\
                         - ( (delta*T/(seg_len*lane_num)) * ( (r_in * current_velocities) / (current_densities+kappa) ) )
         future_vel = tf.Print(future_vel,[future_vel,tf.math.reduce_max(future_vel),tf.shape(future_vel)],"future_vel",summarize=10,first_n=10)#[32,45]
-        future_vel =   tf.clip_by_value(future_vel,40.0,111.)
+        # future_vel =   tf.clip_by_value(future_vel,5.0,111.)
 
 
     future_flows = tf.multiply(future_rho,future_vel*lane_num)#tf.divide(tf.multiply(future_rho,future_vel),tf.constant(4.0))
@@ -504,11 +504,11 @@ class ntfCell(LayerRNNCell):
     future_states = tf.stack([future_volumes,future_occupancies,future_vel,future_r_in,future_r_out],axis=2)
 
     future_states = tf.reshape(future_states,[-1,5*self._n_seg])
-    new_m = tf.truediv(tf.clip_by_value(future_states,0.0,100.0), (self._max_values+1e-6))
+    new_m = tf.truediv(tf.clip_by_value(future_states,0.0,1000.0), (self._max_values+1e-6))
 
     # m = tf.truediv(tf.clip_by_value(future_states,0.1,120.0) , (self._max_values+1e-6))
     # new_m = tf.Print(new_m,[new_m,tf.math.reduce_mean(new_m),tf.math.reduce_max(new_m),tf.math.reduce_min(new_m)],"new_m",summarize=10,first_n=50)
-    m = tf.clip_by_value(new_m,0.0,10.0)
+    # m = tf.clip_by_value(new_m,0.0,10.0)
     m = new_m
 
     new_state = (LSTMStateTuple(c, m) if self._state_is_tuple else
