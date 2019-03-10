@@ -14,9 +14,9 @@ def make_dataset(datadir = '/home/rwee015/Documents/Data/DataFromMikeSept2015/ex
 
     print("building dataset")
 
-    onRoad   = [ '672','673','674','675', '677','709','937','938','939','940','941'] #'676','936','671',
-    onRamps  = [   '0','696',  '0','699',  '0','1121',  '0',  '0','951',  '0','953']
-    offRamps = ['1087',  '0',  '0',  '0','670',   '0','704','950',  '0','952',  '0']
+    onRoad   = [ '671','672','673','674','675', '677','709','937','938','939','940','941'] #'676','936','671',
+    onRamps  = [   '0', '0','696',  '0','699',  '0','1121',  '0',  '0','951',  '0','953']
+    offRamps = [   '0','1087',  '0',  '0',  '0','670',   '0','704','950',  '0','952',  '0']
 
     roadSegs = list(filter(lambda a: a != '0', set(onRoad+onRamps+offRamps))) #combine and remove 0s
     if not os.path.exists("data/processedFiles/"):

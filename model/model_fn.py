@@ -23,7 +23,7 @@ def build_model(mode, inputs, params):
     input_batch = inputs['input_batch']
 
     if params.model_version == 'lstm':
-        lstm_cell = ntfCell(params.num_cols,num_var = 16,max_vals = params.max_vals, all_seg_lens = params.seg_lens,use_peepholes=True,cell_clip=500.0)
+        lstm_cell = ntfCell(params.num_cols,num_var = 16,max_vals = params.max_vals, all_seg_lens = params.seg_lens,use_peepholes=True,cell_clip=3.0)
         # lstm_cell = LSTMCell2(params.lstm_num_units)#,use_peepholes=True,cell_clip=3.0)
 
         init_state = lstm_cell.zero_state(params.batch_size, dtype=tf.float32)
@@ -170,7 +170,7 @@ def model_fn(mode, inputs, params, reuse=False):
 
     # Define training step that minimizes the loss with the Adam optimizer
     if is_training:
-        optimizer = tf.train.GradientDescentOptimizer(params.learning_rate)#tf.train.AdamOptimizer(params.learning_rate)#RMSPropOptimizer(0.001)#AdamOptimizer(params.learning_rate)#tf.train.GradientDescentOptimizer(0.001)#
+        optimizer = tf.train.AdamOptimizer(params.learning_rate)#tf.train.AdamOptimizer(params.learning_rate)#RMSPropOptimizer(0.001)#AdamOptimizer(params.learning_rate)#tf.train.GradientDescentOptimizer(0.001)#
         global_step = tf.train.get_or_create_global_step()
         # train_op = optimizer.minimize(loss, global_step=global_step)
 
