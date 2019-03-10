@@ -201,7 +201,7 @@ def model_fn(mode, inputs, params, reuse=False):
 
         # gradients = tf.Print(gradients,[gradients],"gradients",summarize=20,first_n=20)
 
-        gradients, _ = tf.clip_by_global_norm(gradients, 5.0) #
+        gradients, _ = tf.clip_by_global_norm(gradients, 20.0) #
 
         train_op = optimizer.apply_gradients(zip(gradients, variables))
         #clip by value

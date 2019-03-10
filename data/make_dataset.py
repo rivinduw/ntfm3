@@ -27,7 +27,7 @@ def make_dataset(datadir = '/home/rwee015/Documents/Data/DataFromMikeSept2015/ex
     for file in files:
         data = pd.read_csv(file,parse_dates=[5])
 
-        someSegs = data.loc[data['carriagewaySegmentId'].isin(roadSegs)][::10]
+        someSegs = data.loc[data['carriagewaySegmentId'].isin(roadSegs)]#[::10]
 
         print("found",len(someSegs.groupby(['carriagewaySegmentId']).mean()),"of",len(roadSegs),"segments")
 
