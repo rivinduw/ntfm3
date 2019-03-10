@@ -1,11 +1,11 @@
 {
     "model_version": "lstm",
 
-    "learning_rate": 1e-3,
-    "batch_size": 256,
+    "learning_rate": 1e-2,
+    "batch_size": 64,
     "num_epochs": 1000,
 
-    "window_size": 360,
+    "window_size": 3600,
 
     "save_summary_steps": 100,
 
