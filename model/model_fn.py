@@ -23,7 +23,7 @@ def build_model(mode, inputs, params):
     input_batch = inputs['input_batch']
 
     if params.model_version == 'lstm':
-        lstm_cell = ntfCell(params.num_cols,num_var = 16,max_vals = params.max_vals, all_seg_lens = params.seg_lens,use_peepholes=True,cell_clip=3.0)
+        lstm_cell = ntfCell(params.num_cols,num_var = 16,max_vals = params.max_vals, all_seg_lens = params.seg_lens,use_peepholes=True,cell_clip=5.0)
         # lstm_cell = LSTMCell2(params.lstm_num_units)#,use_peepholes=True,cell_clip=3.0)
 
         init_state = lstm_cell.zero_state(params.batch_size, dtype=tf.float32)
@@ -89,6 +89,9 @@ def model_fn(mode, inputs, params, reuse=False):
     # losses = tf.boolean_mask(losses, feature_mask)
     # predicted_outputs = tf.reshape(tf.boolean_mask(predicted_outputs, feature_mask),[params.batch_size,params.window_size//18,-1])
     feature_mask = labels > 1e-6
+    # feature_mask[:,:,3::5] = True
+    # feature_mask[:,:,4::5] = True
+
 
     predicted_outputs_exp = predicted_outputs#tf.exp(predicted_outputs)
 
