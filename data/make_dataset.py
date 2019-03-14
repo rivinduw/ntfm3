@@ -45,6 +45,7 @@ def make_dataset(datadir = '/home/rwee015/Documents/Data/DataFromMikeSept2015/ex
             onRamp = int(onRamps[i])
             offRamp = int(offRamps[i])
             oneSeg = pd.concat([unstackedSegs[getCols[0]][currentSeg],unstackedSegs[getCols[1]][currentSeg],unstackedSegs[getCols[2]][currentSeg],unstackedSegs[getCols[0]][onRamp],unstackedSegs[getCols[0]][offRamp]],axis=1)
+            oneSeg = oneSeg+1e-3
             oneSeg.columns = ['{:02d}'.format(i)+'_'+str(currentSeg)+'_'+col for col in shortCols]
             allSegs = pd.concat([allSegs,oneSeg],axis=1)
 
@@ -61,7 +62,7 @@ def make_dataset(datadir = '/home/rwee015/Documents/Data/DataFromMikeSept2015/ex
     del data
     del someSegs
     del unstackedSegs
-
+    # allData = allData + 1e-6
     allDataIn = allData.fillna(0.0)#method='pad',inplace=False)
     allData.fillna(0.0,inplace=True)
 
