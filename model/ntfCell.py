@@ -506,6 +506,8 @@ class ntfCell(LayerRNNCell):
 
     future_states = tf.stack([future_volumes,future_occupancies,future_vel,future_r_in,future_r_out],axis=2)
 
+    future_states.set_shape([unscaled_inputs.get_shape()[0],self._n_seg,5])
+
     future_states = tf.reshape(future_states,[-1,5*self._n_seg])
     new_m = tf.truediv(tf.clip_by_value(future_states,0.0,1000.0), (self._max_values+1e-6))
 

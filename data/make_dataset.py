@@ -33,6 +33,8 @@ def make_dataset(datadir = '/home/rwee015/Documents/Data/DataFromMikeSept2015/ex
 
         unstackedSegs = someSegs.groupby(['lastReadingTime','carriagewaySegmentId']).mean().groupby([pd.Grouper(freq='10S', level=0),"carriagewaySegmentId"]).mean().unstack()
 
+        # unstackedSegs = unstackedSegs[::180]
+
         unstackedSegs = unstackedSegs.resample('10S').mean()#.ffill()#
 
         getCols = ['totalVolume','averageOccupancy','averageSpeed','r_in','r_out']

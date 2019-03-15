@@ -76,6 +76,19 @@ def input_fn(mode, inputs, labels, params):
 
     # Query the output of the iterator for input to the model
     input_batch, label_batch = iterator.get_next()
+    new_input_batch = tf.zeros_like(input_batch[:,360:,:])
+    # new_label_batch = tf.zeros_like(label_batch[:,3600:,:])
+
+    new2_input_batch = tf.concat([input_batch[:,:360,:],new_input_batch], axis=1)
+    # new2_label_batch = tf.concat([label_batch[:,:3600,:],new_label_batch], axis=1)
+
+    new2_input_batch.set_shape([input_batch.get_shape()[0], input_batch.get_shape()[1],input_batch.get_shape()[2]])
+    # new2_label_batch.set_shape([label_batch.get_shape()[0], label_batch.get_shape()[1],label_batch.get_shape()[2]])
+
+    input_batch = new2_input_batch
+    # label_batch = new2_label_batch
+
+
     init_op = iterator.initializer
 
     # Build and return a dictionnary containing the nodes / ops
