@@ -32,7 +32,7 @@ def make_dataset(datadir = '/home/rwee015/Documents/Data/DataFromMikeSept2015/ex
         print("found",len(someSegs.groupby(['carriagewaySegmentId']).mean()),"of",len(roadSegs),"segments")
 
         unstackedSegs = someSegs.groupby(['lastReadingTime','carriagewaySegmentId']).mean().groupby([pd.Grouper(freq='10S', level=0),"carriagewaySegmentId"]).mean().unstack()
-
+        unstackedSegs = unstackedSegs+1e-3
         # unstackedSegs = unstackedSegs[::180]
 
         unstackedSegs = unstackedSegs.resample('10S').mean()#.ffill()#
@@ -47,7 +47,7 @@ def make_dataset(datadir = '/home/rwee015/Documents/Data/DataFromMikeSept2015/ex
             onRamp = int(onRamps[i])
             offRamp = int(offRamps[i])
             oneSeg = pd.concat([unstackedSegs[getCols[0]][currentSeg],unstackedSegs[getCols[1]][currentSeg],unstackedSegs[getCols[2]][currentSeg],unstackedSegs[getCols[0]][onRamp],unstackedSegs[getCols[0]][offRamp]],axis=1)
-            oneSeg = oneSeg+1e-3
+            # oneSeg = oneSeg+1e-3
             oneSeg.columns = ['{:02d}'.format(i)+'_'+str(currentSeg)+'_'+col for col in shortCols]
             allSegs = pd.concat([allSegs,oneSeg],axis=1)
 

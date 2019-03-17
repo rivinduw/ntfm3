@@ -180,10 +180,21 @@ class ntfCell(LayerRNNCell):
         shape=[self._num_var*self._n_seg],# * self._n_seg
         initializer=init_ops.zeros_initializer)
 
+    self._out_weights = self.add_variable(
+        "_out_weights/%s" % _WEIGHTS_VARIABLE_NAME,
+        shape=[self._num_units],
+        initializer=init_ops.ones_initializer,
+        partitioner=maybe_partitioner)
+    self._in_weights = self.add_variable(
+        "_in_weights/%s" % _WEIGHTS_VARIABLE_NAME,
+        shape=[self._num_units],
+        initializer=init_ops.ones_initializer,
+        partitioner=maybe_partitioner)
+
     self._kernel_outm = self.add_variable(
         "traffic_outm/%s" % _WEIGHTS_VARIABLE_NAME,
         shape=[self._num_units, self._num_units],
-        initializer=self._initializer,#tf.keras.initializers.Identity(gain=1.0),#self._initializer,#tf.keras.initializers.TruncatedNormal(mean=0.5,stddev=0.25),#tf.keras.initializers.RandomUniform(minval=0.0, maxval=1.0),
+        initializer=tf.keras.initializers.TruncatedNormal(mean=0.5,stddev=0.25),#self._initializer,#tf.keras.initializers.Identity(gain=1.0),#self._initializer,#tf.keras.initializers.TruncatedNormal(mean=0.5,stddev=0.25),#tf.keras.initializers.RandomUniform(minval=0.0, maxval=1.0),
         partitioner=maybe_partitioner)
     self._bias_outm = self.add_variable(
         "traffic_outm/%s" % _BIAS_VARIABLE_NAME,
@@ -259,6 +270,7 @@ class ntfCell(LayerRNNCell):
     # inputs = tf.Print(inputs,[inputs,tf.math.reduce_mean(inputs),tf.math.reduce_max(inputs),tf.math.reduce_min(inputs)],"inputs1",summarize=10,first_n=50)
     # stacked_inputs = tf.stack([inputs, m_prev], axis=2)
     # att_a = tf.stack([-sigmoid(inputs*10+10.0),sigmoid(inputs*10-10.0)],axis=2) #* att_c#tf.math.tanh
+    m_prev = tf.multiply(self._in_weights,m_prev)
     un_inputs = tf.multiply(inputs,self._max_values+1e-6)
     att_a = sigmoid(-(un_inputs*1e15-1e9))#tf.stack([sigmoid((inputs*1e15-1e9)),sigmoid(-(inputs*1e15-1e9))],axis=2) #* att_c#tf.math.tanh
     inputs2 = inputs + m_prev*att_a#tf.reduce_sum(stacked_inputs * att_a,axis=2)
@@ -298,7 +310,7 @@ class ntfCell(LayerRNNCell):
 
     # # m = tf.layers.dropout(m,rate=0.5)
     # new_m = math_ops.matmul(m, self._kernel_outm)
-    # new_m = tf.nn.relu(nn_ops.bias_add(new_m, self._bias_outm))
+    # new_m = nn_ops.bias_add(new_m, self._bias_outm)
     # # new_m = tf.Print(new_m,[new_m,tf.math.reduce_mean(new_m),tf.math.reduce_max(new_m),tf.math.reduce_min(new_m)],"new_m",summarize=10,first_n=50)
     # #
     # # m = new_m
@@ -306,9 +318,9 @@ class ntfCell(LayerRNNCell):
     ntf_matrix = math_ops.matmul(m, self._kernel_context)
     ntf_matrix = sigmoid(nn_ops.bias_add(ntf_matrix, self._bias_context))#tf.nn.relu
 
-    # ntf_matrix = tf.layers.dropout(ntf_matrix,rate=0.5)
-    # ntf_matrix = math_ops.matmul(ntf_matrix, self._kernel_context2)
-    # ntf_matrix = nn_ops.bias_add(ntf_matrix, self._bias_context2)
+    ntf_matrix = tf.layers.dropout(ntf_matrix,rate=0.5)
+    ntf_matrix = math_ops.matmul(ntf_matrix, self._kernel_context2)
+    ntf_matrix = sigmoid(nn_ops.bias_add(ntf_matrix, self._bias_context2))
 
     ntf_matrix = tf.Print(ntf_matrix,[ntf_matrix,tf.math.reduce_mean(ntf_matrix),tf.math.reduce_max(ntf_matrix),tf.math.reduce_min(ntf_matrix)],"ntf_matrix",summarize=10,first_n=50)
 
@@ -381,12 +393,12 @@ class ntfCell(LayerRNNCell):
     # v_f = tf.constant(200.,name="v_f") * tf.expand_dims(tf.reduce_mean(traffic_variables[:,:,0],axis=1),-1)
     # a = tf.constant(3.0,name="a")  *tf.expand_dims(tf.reduce_mean(traffic_variables[:,:,1],axis=1),-1)
     # p_cr = tf.constant(300.0,name="pcr") * tf.expand_dims(tf.reduce_mean(traffic_variables[:,:,2],axis=1),-1)
-    v_f = tf.constant(240.,name="v_f") * traffic_variables[:,:,0]#120
+    v_f = tf.constant(120.,name="v_f")# * traffic_variables[:,:,0]#120
     v_f =  tf.clip_by_value(v_f,90.0,120.0)
-    a = tf.constant(2.86,name="a") * traffic_variables[:,:,1]#1.4324
+    a = tf.constant(1.4324,name="a") #* traffic_variables[:,:,1]#1.4324
     a =  tf.clip_by_value(a,0.9,2.5)
-    p_cr = tf.constant(67.0,name="pcr") * traffic_variables[:,:,2]#33.5
-    p_cr =  tf.clip_by_value(p_cr,10.0,2000.0)
+    p_cr = tf.constant(33.5,name="pcr") #* traffic_variables[:,:,2]#33.5
+    p_cr =  tf.clip_by_value(p_cr,1.0,2000.0)
 
 
 
@@ -458,9 +470,9 @@ class ntfCell(LayerRNNCell):
     next_densities  = tf.concat([current_densities[:,1:],last_density],1)
 
     #flow_beta * current_flows
-    future_r_in = 1.*tf.multiply(traffic_variables[:,:,3],flow_scaling)#*flow_scaling#tf.truediv(flow_scaling * traffic_variables[:,:,3],120.0)
+    future_r_in = 1.*tf.nn.relu(tf.multiply(traffic_variables[:,:,3],flow_scaling))#*flow_scaling#tf.truediv(flow_scaling * traffic_variables[:,:,3],120.0)
     beta_out = tf.clip_by_value(traffic_variables[:,:,4],0.0,1.0)
-    future_r_out = 1.*tf.truediv(tf.multiply(beta_out,prev_flows),flow_to_hr)#flow_scaling#0.*traffic_variables[:,:,4]*current_flows
+    future_r_out = 1.*tf.nn.relu(tf.truediv(tf.multiply(beta_out,prev_flows),flow_to_hr))#flow_scaling#0.*traffic_variables[:,:,4]*current_flows
 
     future_r_in = tf.Print(future_r_in,[future_r_in,tf.math.reduce_mean(future_r_in),tf.math.reduce_max(future_r_in),tf.math.reduce_min(future_r_in)],"future_r_in",summarize=10,first_n=50)
     future_r_out = tf.Print(future_r_out,[future_r_out,tf.math.reduce_mean(future_r_out),tf.math.reduce_max(future_r_out),tf.math.reduce_min(future_r_out)],"future_r_out",summarize=10,first_n=50)
@@ -509,12 +521,13 @@ class ntfCell(LayerRNNCell):
     future_states.set_shape([unscaled_inputs.get_shape()[0],self._n_seg,5])
 
     future_states = tf.reshape(future_states,[-1,5*self._n_seg])
-    new_m = tf.truediv(tf.clip_by_value(future_states,0.0,1000.0), (self._max_values+1e-6))
+    new_m = tf.truediv(future_states, (self._max_values+1e-6))
 
     # m = tf.truediv(tf.clip_by_value(future_states,0.1,120.0) , (self._max_values+1e-6))
     # new_m = tf.Print(new_m,[new_m,tf.math.reduce_mean(new_m),tf.math.reduce_max(new_m),tf.math.reduce_min(new_m)],"new_m",summarize=10,first_n=50)
     # m = tf.clip_by_value(new_m,0.0,10.0)
-    m = new_m
+
+    m = tf.multiply(self._out_weights,new_m)#new_m
 
     new_state = (LSTMStateTuple(c, m) if self._state_is_tuple else
                  array_ops.concat([c, m], 1))
@@ -635,6 +648,9 @@ class LSTMCell2(LayerRNNCell):
     self._num_proj_shards = num_proj_shards
     self._forget_bias = forget_bias
     self._state_is_tuple = state_is_tuple
+
+    self._num_splits = 4
+
     if activation:
       self._activation = activations.get(activation)
     else:
@@ -682,7 +698,7 @@ class LSTMCell2(LayerRNNCell):
       initializer = init_ops.zeros_initializer(dtype=self.dtype)
     self._bias = self.add_variable(
         _BIAS_VARIABLE_NAME,
-        shape=[self._num_splits * self._num_units],
+        shape= [self._num_splits * self._num_units],
         initializer=initializer)
     if self._use_peepholes:
       self._w_f_diag = self.add_variable("w_f_diag", shape=[self._num_units],

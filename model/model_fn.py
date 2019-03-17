@@ -24,7 +24,7 @@ def build_model(mode, inputs, params):
 
     if params.model_version == 'lstm':
         lstm_cell = ntfCell(params.num_cols,num_var = 16,max_vals = params.max_vals, all_seg_lens = params.seg_lens,use_peepholes=True,cell_clip=5.0)
-        # lstm_cell = LSTMCell2(params.lstm_num_units)#,use_peepholes=True,cell_clip=3.0)
+        # lstm_cell = LSTMCell2(params.num_cols,use_peepholes=True,cell_clip=5.0)#,use_peepholes=True,cell_clip=3.0)
 
         init_state = lstm_cell.zero_state(params.batch_size, dtype=tf.float32)
         init_state = tf.identity(init_state, 'init_state') #Actually it works without this line. But it can be useful
@@ -34,7 +34,9 @@ def build_model(mode, inputs, params):
         # initial_state = [(tf.add(state[0],tf.ones_like(state[0])*params.max_vals), state[1]) for state in initial_state]
         #input_batch = tf.truediv(tf.log(input_batch+1.0),tf.log(tf.convert_to_tensor(params.max_vals)+1.0)+1e-6)
         input_batch = tf.truediv(input_batch,tf.convert_to_tensor(params.max_vals)+1e-6)
-        rnn_outputs, rnn_states  = tf.nn.dynamic_rnn(lstm_cell, input_batch, dtype=tf.float32,initial_state=_lstm_state_)
+        # rnn_outputs, rnn_states  = tf.nn.dynamic_rnn(lstm_cell, input_batch, dtype=tf.float32,initial_state=_lstm_state_)
+        rnn_outputs, rnn_states  = tf.nn.dynamic_rnn(lstm_cell, input_batch, dtype=tf.float32)
+
 
         # # Compute logits from the output of the LSTM
         # logits = tf.layers.dense(output, params.number_of_tags)
@@ -78,7 +80,7 @@ def model_fn(mode, inputs, params, reuse=False):
         # predictions = tf.argmax(logits, -1)
 
 
-    max_div = tf.convert_to_tensor(params.max_vals)+1e-6
+    max_div = tf.convert_to_tensor(params.max_vals)+1.0
 
     # Define loss and accuracy (we need to apply a mask to account for padding)
     # losses = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels)
@@ -137,8 +139,8 @@ def model_fn(mode, inputs, params, reuse=False):
     # label_mask[:,::18,::5]=True
     # label_mask[:,::18,1::5]=True
     # labels = tf.reshape(tf.boolean_mask(labels, label_mask),[params.batch_size,params.window_size//18,-1])
-    predicted_outputs_masked = tf.boolean_mask(predicted_outputs/max_div, feature_mask)
-    labels_masked            = tf.boolean_mask(labels/max_div, feature_mask)
+    predicted_outputs_masked = tf.boolean_mask(predicted_outputs, feature_mask)#tf.boolean_mask(predicted_outputs/max_div, feature_mask)
+    labels_masked            = tf.boolean_mask(labels, feature_mask)#tf.boolean_mask(labels/max_div, feature_mask)
     log_lbl_masked           = labels_masked#tf.boolean_mask(tf.log(labels+1.0), feature_mask)
 
 
@@ -173,7 +175,7 @@ def model_fn(mode, inputs, params, reuse=False):
 
     # Define training step that minimizes the loss with the Adam optimizer
     if is_training:
-        optimizer = tf.train.AdamOptimizer(params.learning_rate)#tf.train.AdamOptimizer(params.learning_rate)#RMSPropOptimizer(0.001)#AdamOptimizer(params.learning_rate)#tf.train.GradientDescentOptimizer(0.001)#
+        optimizer = tf.train.GradientDescentOptimizer(params.learning_rate)#tf.train.AdamOptimizer(params.learning_rate)#RMSPropOptimizer(0.001)#AdamOptimizer(params.learning_rate)#tf.train.GradientDescentOptimizer(0.001)#
         global_step = tf.train.get_or_create_global_step()
         # train_op = optimizer.minimize(loss, global_step=global_step)
 
