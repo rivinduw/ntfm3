@@ -92,6 +92,10 @@ def evaluate_sess(sess, model_spec, num_steps, writer=None, params=None):
     pd.DataFrame(labels[0,:,:]).to_csv('labels.csv')
     pd.DataFrame(input_batch[0,:,:]).to_csv('input_batch.csv')
 
+    pd.DataFrame(predicted_outputs[-1,:,:]).to_csv('predicted_outputs_last.csv')
+    pd.DataFrame(labels[-1,:,:]).to_csv('labels_last.csv')
+    pd.DataFrame(input_batch[-1,:,:]).to_csv('input_batch_last.csv')
+
 
     # Add summaries manually to writer at global_step_val
     if writer is not None:

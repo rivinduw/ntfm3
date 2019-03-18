@@ -55,7 +55,7 @@ def input_fn(mode, inputs, labels, params):
     dataset = tf.data.Dataset.zip((inputs, labels))
 
     # Create batches and pad the sentences of different length
-    dataset = dataset.apply(tf.contrib.data.sliding_window_batch(window_size=params.window_size, window_shift=10)) #360*10s = 1hour
+    dataset = dataset.apply(tf.contrib.data.sliding_window_batch(window_size=params.window_size, window_shift=1)) #360*10s = 1hour
     #tf.data.Dataset.window(size=window_size, shift=window_shift, stride=window_stride).flat_map(lambda x: x.batch(window.size))
 
     if mode=='eval':
@@ -76,10 +76,10 @@ def input_fn(mode, inputs, labels, params):
 
     # Query the output of the iterator for input to the model
     input_batch, label_batch = iterator.get_next()
-    new_input_batch = tf.zeros_like(input_batch[:,360:,:])
+    new_input_batch = tf.zeros_like(input_batch[:,1080:,:])
     # new_label_batch = tf.zeros_like(label_batch[:,3600:,:])
 
-    new2_input_batch = tf.concat([input_batch[:,:360,:],new_input_batch], axis=1)
+    new2_input_batch = tf.concat([input_batch[:,:1080,:],new_input_batch], axis=1)
     # new2_label_batch = tf.concat([label_batch[:,:3600,:],new_label_batch], axis=1)
 
     new2_input_batch.set_shape([input_batch.get_shape()[0], input_batch.get_shape()[1],input_batch.get_shape()[2]])
