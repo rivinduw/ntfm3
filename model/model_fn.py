@@ -28,15 +28,23 @@ def build_model(mode, inputs, params):
 
         init_state = lstm_cell.zero_state(params.batch_size, dtype=tf.float32)
         init_state = tf.identity(init_state, 'init_state') #Actually it works without this line. But it can be useful
-        _lstm_state_ = tf.contrib.rnn.LSTMStateTuple(init_state[0, :, :], init_state[1,:,:]+ tf.truediv(params.mean_vals,tf.convert_to_tensor(params.max_vals)+1e-6))
+        _lstm_state_ = tf.contrib.rnn.LSTMStateTuple(init_state[0, :, :], init_state[1,:,:]+ tf.truediv(params.mean_vals,tf.convert_to_tensor(params.max_vals)+1e-3))
 
         # initial_state[1] = initial_state[1] + params.max_vals
         # initial_state = [(tf.add(state[0],tf.ones_like(state[0])*params.max_vals), state[1]) for state in initial_state]
         #input_batch = tf.truediv(tf.log(input_batch+1.0),tf.log(tf.convert_to_tensor(params.max_vals)+1.0)+1e-6)
-        input_batch = tf.truediv(input_batch,tf.convert_to_tensor(params.max_vals)+1e-6)
+        input_batch = tf.truediv(input_batch,tf.convert_to_tensor(params.max_vals)+1e-3)
         # rnn_outputs, rnn_states  = tf.nn.dynamic_rnn(lstm_cell, input_batch, dtype=tf.float32,initial_state=_lstm_state_)
         rnn_outputs, rnn_states  = tf.nn.dynamic_rnn(lstm_cell, input_batch, dtype=tf.float32)
 
+
+        out_means = tf.get_variable("out_means", initializer=tf.zeros(shape=(tf.shape(tf.convert_to_tensor(params.max_vals)))))
+        out_log_var = tf.get_variable("out_log_var", initializer=tf.zeros(shape=(tf.shape(tf.convert_to_tensor(params.max_vals)))))
+        out_sigma = tf.exp(out_log_var)
+        out_noise = tf.random_normal(shape=tf.shape(out_sigma),mean=0, stddev=1, dtype=tf.float32)
+        out_add = out_means + tf.multiply(out_sigma,out_noise)
+
+        #rnn_outputs = rnn_outputs + out_add
 
         # # Compute logits from the output of the LSTM
         # logits = tf.layers.dense(output, params.number_of_tags)
@@ -47,6 +55,7 @@ def build_model(mode, inputs, params):
         # predicted_outputs = tf.map_fn(final_projection, rnn_outputs)
         # predicted_outputs =  tf.layers.dense(rnn_outputs, params.rnn_output_size,activation='linear')
         predicted_outputs =  tf.multiply(rnn_outputs,tf.convert_to_tensor(params.max_vals))#*200.0#*tf.log(tf.convert_to_tensor(params.max_vals)+1.0)#tf.layers.dense(rnn_outputs, params.rnn_output_size)
+        predicted_outputs = predicted_outputs + out_add
         predicted_outputs = tf.Print(predicted_outputs,[predicted_outputs,tf.math.reduce_min(predicted_outputs),tf.math.reduce_mean(predicted_outputs),tf.math.reduce_max(predicted_outputs)],"predicted_outputs",summarize=18,first_n=50)
 
     else:

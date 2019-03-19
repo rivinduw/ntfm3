@@ -180,12 +180,12 @@ class ntfCell(LayerRNNCell):
     self._in_weights = self.add_variable(
         "_in_weights/%s" % _WEIGHTS_VARIABLE_NAME,
         shape=[self._num_units],
-        initializer=self._initializer,#init_ops.ones_initializer,
+        initializer=init_ops.zeros_initializer,
         partitioner=maybe_partitioner)
     self._in_means = self.add_variable(
         "_in_means/%s" % _WEIGHTS_VARIABLE_NAME,
         shape=[self._num_units],
-        initializer=self._initializer,#init_ops.ones_initializer,
+        initializer=init_ops.zeros_initializer,
         partitioner=maybe_partitioner)
 
     self._kernel_outm = self.add_variable(
@@ -263,7 +263,7 @@ class ntfCell(LayerRNNCell):
       raise ValueError("Could not infer input size from inputs.get_shape()[-1]")
 
     # m_prev = tf.multiply(self._in_weights,m_prev)
-    in_gamma = tf.exp(self._in_weights)
+    in_gamma = self._in_weights
     eps_gamma = tf.random_normal(shape=tf.shape(in_gamma),mean=0, stddev=1, dtype=tf.float32)
     meas_gamma = self._in_means + tf.multiply(in_gamma,eps_gamma)
 
@@ -309,7 +309,7 @@ class ntfCell(LayerRNNCell):
 
     traffic_variables = tf.reshape(ntf_matrix,[-1,self._n_seg,self._num_var])
 
-    unscaled_inputs = tf.nn.relu(tf.multiply(inputs2,self._max_values+1e-6))
+    unscaled_inputs = tf.nn.relu(tf.multiply(inputs2,self._max_values+1e-3))
     unscaled_inputs = tf.reshape(unscaled_inputs,[-1,self._n_seg,5])
     unscaled_inputs = tf.Print(unscaled_inputs,[unscaled_inputs,tf.math.reduce_mean(unscaled_inputs),tf.math.reduce_max(unscaled_inputs),tf.math.reduce_min(unscaled_inputs)],"unscaled_inputs",summarize=10,first_n=50)
 
@@ -391,7 +391,7 @@ class ntfCell(LayerRNNCell):
         stat_speed =  tf.clip_by_value(stat_speed,20.0,120.0)
         stat_speed = tf.Print(stat_speed,[stat_speed,tf.math.reduce_max(stat_speed),tf.shape(stat_speed)],"stat_speed",summarize=10,first_n=10)
 
-        sigma_v = tf.exp(100.0*traffic_variables[:,:,7])
+        sigma_v = 10.0*traffic_variables[:,:,7]
         noise_v = tf.random_normal(shape=tf.shape(sigma_v),mean=0, stddev=1, dtype=tf.float32)
         epsilon_v = tf.multiply(sigma_v,noise_v)
 
@@ -402,7 +402,7 @@ class ntfCell(LayerRNNCell):
         future_vel = tf.Print(future_vel,[future_vel,tf.math.reduce_max(future_vel),tf.shape(future_vel)],"future_vel",summarize=10,first_n=10)#[32,45]
         future_vel =   tf.clip_by_value(future_vel,20.0,111.)
 
-    sigma_q = tf.exp(100.0*traffic_variables[:,:,8])
+    sigma_q = 10.0*traffic_variables[:,:,8]
     noise_q = tf.random_normal(shape=tf.shape(sigma_q),mean=0, stddev=1, dtype=tf.float32)
     epsilon_q = tf.multiply(sigma_q,noise_q)
 
@@ -426,7 +426,7 @@ class ntfCell(LayerRNNCell):
     # epsilon_out = tf.multiply(tf.exp(log_eps_out),sample_out)
     #
     # m = new_m + epsilon_out#tf.multiply(self._out_weights,new_m)#new_m
-    m = new_m - meas_gamma#tf.multiply(self._out_weights,new_m)#new_m
+    m = tf.nn.relu(new_m) #- meas_gamma#tf.multiply(self._out_weights,new_m)#new_m
 
     new_state = (LSTMStateTuple(c, m) if self._state_is_tuple else
                  array_ops.concat([c, m], 1))
