@@ -267,7 +267,7 @@ class ntfCell(LayerRNNCell):
     eps_gamma = tf.random_normal(shape=tf.shape(in_gamma),mean=0, stddev=1, dtype=tf.float32)
     meas_gamma = self._in_means + tf.multiply(in_gamma,eps_gamma)
 
-    inputs_err = inputs + meas_gamma
+    inputs_err = inputs #+ meas_gamma
 
     un_inputs = tf.multiply(inputs,self._max_values+1e-6)
     att_a = sigmoid(-(un_inputs*1e15-1e9))
@@ -317,12 +317,12 @@ class ntfCell(LayerRNNCell):
     flow_scaling = tf.constant(100.0,name="flow_scaling")
     density_scaling = tf.constant(3.0,name="density_scaling")
 
-    v_f = tf.constant(200.,name="v_f") * traffic_variables[:,:,0]#120
+    v_f = tf.constant(240.,name="v_f") * traffic_variables[:,:,0]#120
     v_f =  tf.clip_by_value(v_f,90.0,120.0)
     a = tf.constant(2.86,name="a") * traffic_variables[:,:,1]#1.4324
     a =  tf.clip_by_value(a,0.9,2.5)
     p_cr = tf.constant(67.0,name="pcr") * traffic_variables[:,:,2]#33.5
-    p_cr =  tf.clip_by_value(p_cr,1.0,2000.0)
+    p_cr =  tf.clip_by_value(p_cr,1.0,200.0)
 
     lane_num = tf.constant(3.0,name="lane_num") #check flow_to hr
     T = tf.truediv(tf.constant(10.0,name="T"),3600.0) # 1e-6* traffic_variables[:,:,7] #check log exp v
@@ -353,10 +353,10 @@ class ntfCell(LayerRNNCell):
     first_velocity = tf.reshape(first_velocity,[-1,1])
     last_density   = tf.reshape(last_density,[-1,1])
 
-    first_flow = tf.Print(first_flow,[first_flow,tf.math.reduce_mean(first_flow)],"first_flow",summarize=10,first_n=10)
-    first_density = tf.Print(first_density,[first_density,tf.math.reduce_mean(first_density)],"first_density",summarize=10,first_n=10)
-    first_velocity = tf.Print(first_velocity,[first_velocity,tf.math.reduce_mean(first_velocity)],"first_velocity",summarize=10,first_n=10)
-    last_density = tf.Print(last_density,[last_density,tf.math.reduce_mean(last_density)],"last_density",summarize=10,first_n=10)
+    #first_flow = tf.Print(first_flow,[first_flow,tf.math.reduce_mean(first_flow)],"first_flow",summarize=10,first_n=10)
+    #first_density = tf.Print(first_density,[first_density,tf.math.reduce_mean(first_density)],"first_density",summarize=10,first_n=10)
+    #first_velocity = tf.Print(first_velocity,[first_velocity,tf.math.reduce_mean(first_velocity)],"first_velocity",summarize=10,first_n=10)
+    #last_density = tf.Print(last_density,[last_density,tf.math.reduce_mean(last_density)],"last_density",summarize=10,first_n=10)
 
     prev_flows      = tf.concat([first_flow,current_flows[:,:-1]],1)
     prev_densities  = tf.concat([first_density,current_densities[:,:-1]],1)
@@ -368,8 +368,8 @@ class ntfCell(LayerRNNCell):
     beta_out = tf.clip_by_value(traffic_variables[:,:,4],0.0,1.0)
     future_r_out = 1.*tf.nn.relu(tf.truediv(tf.multiply(beta_out,prev_flows),flow_to_hr))#flow_scaling#0.*traffic_variables[:,:,4]*current_flows
 
-    future_r_in = tf.Print(future_r_in,[future_r_in,tf.math.reduce_mean(future_r_in),tf.math.reduce_max(future_r_in),tf.math.reduce_min(future_r_in)],"future_r_in",summarize=10,first_n=50)
-    future_r_out = tf.Print(future_r_out,[future_r_out,tf.math.reduce_mean(future_r_out),tf.math.reduce_max(future_r_out),tf.math.reduce_min(future_r_out)],"future_r_out",summarize=10,first_n=50)
+    #future_r_in = tf.Print(future_r_in,[future_r_in,tf.math.reduce_mean(future_r_in),tf.math.reduce_max(future_r_in),tf.math.reduce_min(future_r_in)],"future_r_in",summarize=10,first_n=50)
+    #future_r_out = tf.Print(future_r_out,[future_r_out,tf.math.reduce_mean(future_r_out),tf.math.reduce_max(future_r_out),tf.math.reduce_min(future_r_out)],"future_r_out",summarize=10,first_n=50)
 
 
     """unscaled_inputs is the current_seg volume and density [32,45,2]
@@ -391,28 +391,32 @@ class ntfCell(LayerRNNCell):
         stat_speed =  tf.clip_by_value(stat_speed,20.0,120.0)
         stat_speed = tf.Print(stat_speed,[stat_speed,tf.math.reduce_max(stat_speed),tf.shape(stat_speed)],"stat_speed",summarize=10,first_n=10)
 
-        sigma_v = 10.0*traffic_variables[:,:,7]
+        sigma_v = 1.0*traffic_variables[:,:,7]
         noise_v = tf.random_normal(shape=tf.shape(sigma_v),mean=0, stddev=1, dtype=tf.float32)
         epsilon_v = tf.multiply(sigma_v,noise_v)
+        epsilon_v = tf.Print(epsilon_v,[epsilon_v,tf.math.reduce_min(epsilon_v),tf.math.reduce_max(epsilon_v)],"epsilon_v",summarize=10,first_n=10)#[32,45]
 
         future_vel = current_velocities + ( (T/tau) * (stat_speed - current_velocities) )\
                         + ( (current_velocities*T/seg_len) * (prev_velocities - current_velocities ) )\
                         - ( (nu*T/(tau*seg_len)) * ( (next_densities - current_densities) / (current_densities + kappa) )  )\
-                        - ( (delta*T/(seg_len*lane_num)) * ( (r_in * current_velocities) / (current_densities+kappa) ) ) + epsilon_v
-        future_vel = tf.Print(future_vel,[future_vel,tf.math.reduce_max(future_vel),tf.shape(future_vel)],"future_vel",summarize=10,first_n=10)#[32,45]
-        future_vel =   tf.clip_by_value(future_vel,20.0,111.)
+                        - ( (delta*T/(seg_len*lane_num)) * ( (r_in * current_velocities) / (current_densities+kappa) ) )\
+                        +  1.0*epsilon_v
 
-    sigma_q = 10.0*traffic_variables[:,:,8]
+        future_vel = tf.Print(future_vel,[future_vel,tf.math.reduce_max(future_vel),tf.shape(future_vel)],"future_vel",summarize=10,first_n=10)#[32,45]
+        future_vel = tf.clip_by_value(future_vel,20.0,120.)
+
+    sigma_q = 1.0*traffic_variables[:,:,8]
     noise_q = tf.random_normal(shape=tf.shape(sigma_q),mean=0, stddev=1, dtype=tf.float32)
     epsilon_q = tf.multiply(sigma_q,noise_q)
 
-    future_flows = tf.multiply(future_rho,future_vel*lane_num) + epsilon_q
+    future_flows = tf.multiply(future_rho,future_vel*lane_num) + 1.0*epsilon_q
+    future_flows = tf.clip_by_value(future_flows,0.0,100000.0)
 
     future_volumes = tf.truediv(future_flows,flow_to_hr)
     future_occupancies = tf.truediv(future_rho,g)#tf.truediv(future_rho,g+1e-6)
 
-    future_volumes = tf.Print(future_volumes,[future_volumes,tf.math.reduce_max(future_volumes),tf.shape(future_volumes)],"future_volumes",summarize=10,first_n=10)
-    future_occupancies = tf.Print(future_occupancies,[future_occupancies,tf.math.reduce_max(future_occupancies),tf.shape(future_occupancies)],"future_occupancies",summarize=10,first_n=10)
+    #future_volumes = tf.Print(future_volumes,[future_volumes,tf.math.reduce_max(future_volumes),tf.shape(future_volumes)],"future_volumes",summarize=10,first_n=10)
+    #future_occupancies = tf.Print(future_occupancies,[future_occupancies,tf.math.reduce_max(future_occupancies),tf.shape(future_occupancies)],"future_occupancies",summarize=10,first_n=10)
 
     future_states = tf.stack([future_volumes,future_occupancies,future_vel,future_r_in,future_r_out],axis=2)
 
@@ -426,7 +430,7 @@ class ntfCell(LayerRNNCell):
     # epsilon_out = tf.multiply(tf.exp(log_eps_out),sample_out)
     #
     # m = new_m + epsilon_out#tf.multiply(self._out_weights,new_m)#new_m
-    m = tf.nn.relu(new_m) #- meas_gamma#tf.multiply(self._out_weights,new_m)#new_m
+    m = tf.clip_by_value(new_m,0.0,1000.0) #- meas_gamma#tf.multiply(self._out_weights,new_m)#new_m
 
     new_state = (LSTMStateTuple(c, m) if self._state_is_tuple else
                  array_ops.concat([c, m], 1))
