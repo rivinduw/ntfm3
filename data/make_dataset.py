@@ -10,7 +10,7 @@ import json
 
 # from scipy.stats import mstats
 
-def make_dataset(datadir = '/home/rwee015/Documents/Data/DataFromMikeSept2015/extract/',steps = 1,train_frac=0.6):
+def make_dataset(datadir = '/home/rwee015/Documents/Data/DataFromMikeSept2015/extract/',steps = 1,train_frac=0.5):
 
     print("building dataset")
 
@@ -34,6 +34,7 @@ def make_dataset(datadir = '/home/rwee015/Documents/Data/DataFromMikeSept2015/ex
         unstackedSegs = someSegs.groupby(['lastReadingTime','carriagewaySegmentId']).mean().groupby([pd.Grouper(freq='10S', level=0),"carriagewaySegmentId"]).mean().unstack()
         unstackedSegs['totalVolume',0] = np.zeros(unstackedSegs.shape[0]) #empty columns if no on/off ramp
         unstackedSegs = unstackedSegs+1e-3
+
         # unstackedSegs = unstackedSegs[::180]
 
         unstackedSegs = unstackedSegs.resample('10S').mean()#.ffill()#
@@ -74,8 +75,8 @@ def make_dataset(datadir = '/home/rwee015/Documents/Data/DataFromMikeSept2015/ex
     del someSegs
     del unstackedSegs
     # allData = allData + 1e-6
-    allDataIn = allData.fillna(0.0)#method='pad',inplace=False)
-    allData.fillna(0.0,inplace=True)
+    allDataIn = allData.fillna(0.0)[:int(len(allData)*0.8)]#method='pad',inplace=False)
+    allData = allDataIn#.fillna(0.0,inplace=True)
 
     train_size = int(float(train_frac)*len(allData))
     print("train size:",str(train_size))
