@@ -14,9 +14,9 @@ def make_dataset(datadir = '/home/rwee015/Documents/Data/DataFromMikeSept2015/ex
 
     print("building dataset")
 
-    onRoad   = [ '671','672','673','674','675', '677','709','937','938','939','940','941'] #'676','936','671',
-    onRamps  = [   '0', '0','696',  '0','699',  '0','1121',  '0',  '0','951',  '0','953']
-    offRamps = [   '0','1087',  '0',  '0',  '0','670',   '0','704','950',  '0','952',  '0']
+    onRoad   = [ '672','673', '1','674', '1','675', '677', '1', '709', '1', '937', '1','938', '1','939','940','941'] #'676','936','671',
+    onRamps  = [   '0','696', '0',  '0','699', '0',   '0', '0','1121', '0',   '0', '0',  '0', '951','0',  '0','953']
+    offRamps = ['1087', '0',  '0',  '0', '0',  '0', '670', '0',   '0', '704', '0', '950','0', '0',  '0','952',  '0']
 
     roadSegs = list(filter(lambda a: a != '0', set(onRoad+onRamps+offRamps))) #combine and remove 0s
     if not os.path.exists("data/processedFiles/"):
@@ -32,6 +32,7 @@ def make_dataset(datadir = '/home/rwee015/Documents/Data/DataFromMikeSept2015/ex
         print("found",len(someSegs.groupby(['carriagewaySegmentId']).mean()),"of",len(roadSegs),"segments")
 
         unstackedSegs = someSegs.groupby(['lastReadingTime','carriagewaySegmentId']).mean().groupby([pd.Grouper(freq='10S', level=0),"carriagewaySegmentId"]).mean().unstack()
+        unstackedSegs['totalVolume',0] = np.zeros(unstackedSegs.shape[0]) #empty columns if no on/off ramp
         unstackedSegs = unstackedSegs+1e-3
         # unstackedSegs = unstackedSegs[::180]
 
@@ -39,7 +40,9 @@ def make_dataset(datadir = '/home/rwee015/Documents/Data/DataFromMikeSept2015/ex
 
         getCols = ['totalVolume','averageOccupancy','averageSpeed','r_in','r_out']
         shortCols = ['q','o','s','r','f']
-        unstackedSegs['totalVolume',0] = np.zeros(unstackedSegs.shape[0]) #empty columns if no on/off ramp
+        unstackedSegs['totalVolume',1] = np.zeros(unstackedSegs.shape[0]) #empty columns if missing data
+        unstackedSegs['averageOccupancy',1] = np.zeros(unstackedSegs.shape[0])
+        unstackedSegs['averageSpeed',1] = np.zeros(unstackedSegs.shape[0])
 
         allSegs = pd.DataFrame()
         for i in range(len(onRoad)):
@@ -56,9 +59,15 @@ def make_dataset(datadir = '/home/rwee015/Documents/Data/DataFromMikeSept2015/ex
         allData = pd.concat([allData,allSegs],axis=0)
         del allSegs
 
-    means = someSegs.groupby(['carriagewaySegmentId']).mean()
-    means['distance'] = (1000*means['segmentTime'] * means['averageSpeed']/60)
-    seg_lens = means['distance'][[int(s) for s in onRoad]]
+    #because of the zero/missing segments, the lengths are not accurate when calculated
+    # means = someSegs.groupby(['carriagewaySegmentId']).mean()
+    # means['distance'] = (1000*means['segmentTime'] * means['averageSpeed']/60)
+    # seg_lens = means['distance'][[int(s) for s in onRoad]]
+    # pd.DataFrame(seg_lens).T.to_csv('data/seg_lens.csv',index=False)
+
+    seg_lens = [ '590.0','411.0', '559.0','559.0', '396.5','396.5', '523.0', '419.0', '419.0', '468.0', '468.0', '431.0','431.0', '573.5','573.5','561.0','531.0']
+    #should be string. If doing again, just remove quotes from above
+    seg_lens = [float(i) for i in seg_lens]
     pd.DataFrame(seg_lens).T.to_csv('data/seg_lens.csv',index=False)
 
     del data

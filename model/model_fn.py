@@ -58,10 +58,10 @@ def build_model(mode, inputs, params):
         # apply projection to every timestep.
         # predicted_outputs = tf.map_fn(final_projection, rnn_outputs)
         # predicted_outputs =  tf.layers.dense(rnn_outputs, params.rnn_output_size,activation='linear')
-        predicted_outputs =  tf.multiply(rnn_outputs,tf.convert_to_tensor(params.max_vals))#*200.0#*tf.log(tf.convert_to_tensor(params.max_vals)+1.0)#tf.layers.dense(rnn_outputs, params.rnn_output_size)
-        predicted_outputs = predicted_outputs - out_add
+        predicted_outputs =  tf.multiply(rnn_outputs,tf.convert_to_tensor(params.max_vals)) - out_add#*200.0#*tf.log(tf.convert_to_tensor(params.max_vals)+1.0)#tf.layers.dense(rnn_outputs, params.rnn_output_size)
+        # predicted_outputs = tf.truediv(predicted_outputs,out_add+1e-3)
         predicted_outputs = tf.Print(predicted_outputs,[predicted_outputs,tf.math.reduce_min(predicted_outputs),tf.math.reduce_mean(predicted_outputs),tf.math.reduce_max(predicted_outputs)],"predicted_outputs",summarize=18,first_n=50)
-        #predicted_outputs =  tf.nn.relu(predicted_outputs)
+        predicted_outputs =  tf.nn.relu(predicted_outputs)
     else:
         raise NotImplementedError("Unknown model version: {}".format(params.model_version))
 

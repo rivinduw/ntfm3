@@ -67,19 +67,20 @@ def input_fn(mode, inputs, labels, params):
         dataset = (dataset
             .shuffle(buffer_size=buffer_size)
             .batch(params.batch_size)
-            .prefetch(2)  # make sure you always have one batch ready to serve
+            .prefetch(1)  # make sure you always have one batch ready to serve
         )
 
 
     # Create initializable iterator from this dataset so that we can reset at each epoch
     iterator = dataset.make_initializable_iterator()
 
+    label_window = params.label_window
     # Query the output of the iterator for input to the model
     input_batch, label_batch = iterator.get_next()
-    new_input_batch = tf.zeros_like(input_batch[:,1080:,:])
+    new_input_batch = tf.zeros_like(input_batch[:,label_window:,:])
     # new_label_batch = tf.zeros_like(label_batch[:,3600:,:])
 
-    new2_input_batch = tf.concat([input_batch[:,:1080,:],new_input_batch], axis=1)
+    new2_input_batch = tf.concat([input_batch[:,:label_window,:],new_input_batch], axis=1)
     # new2_label_batch = tf.concat([label_batch[:,:3600,:],new_label_batch], axis=1)
 
     new2_input_batch.set_shape([input_batch.get_shape()[0], input_batch.get_shape()[1],input_batch.get_shape()[2]])

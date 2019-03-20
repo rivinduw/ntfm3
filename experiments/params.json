@@ -6,6 +6,7 @@
     "num_epochs": 1000,
 
     "window_size": 1440,
+    "label_window": 1080,
 
     "save_summary_steps": 100,
 

@@ -269,7 +269,7 @@ class ntfCell(LayerRNNCell):
 
     inputs_err = inputs #+ meas_gamma
 
-    un_inputs = tf.multiply(inputs,self._max_values+1e-6)
+    un_inputs = tf.multiply(inputs,self._max_values+1e-3)
     att_a = sigmoid(-(un_inputs*1e15-1e9))
     att_b = sigmoid((un_inputs*1e15-1e9))
     inputs2 = inputs_err*att_b + m_prev*att_a
@@ -305,13 +305,13 @@ class ntfCell(LayerRNNCell):
     # ntf_matrix = math_ops.matmul(ntf_matrix, self._kernel_context2)
     # ntf_matrix = sigmoid(nn_ops.bias_add(ntf_matrix, self._bias_context2))
 
-    ntf_matrix = tf.Print(ntf_matrix,[ntf_matrix,tf.math.reduce_mean(ntf_matrix),tf.math.reduce_max(ntf_matrix),tf.math.reduce_min(ntf_matrix)],"ntf_matrix",summarize=10,first_n=50)
+    # ntf_matrix = tf.Print(ntf_matrix,[ntf_matrix,tf.math.reduce_mean(ntf_matrix),tf.math.reduce_max(ntf_matrix),tf.math.reduce_min(ntf_matrix)],"ntf_matrix",summarize=10,first_n=50)
 
     traffic_variables = tf.reshape(ntf_matrix,[-1,self._n_seg,self._num_var])
 
     unscaled_inputs = tf.nn.relu(tf.multiply(inputs2,self._max_values+1e-3))
     unscaled_inputs = tf.reshape(unscaled_inputs,[-1,self._n_seg,5])
-    unscaled_inputs = tf.Print(unscaled_inputs,[unscaled_inputs,tf.math.reduce_mean(unscaled_inputs),tf.math.reduce_max(unscaled_inputs),tf.math.reduce_min(unscaled_inputs)],"unscaled_inputs",summarize=10,first_n=50)
+    # unscaled_inputs = tf.Print(unscaled_inputs,[unscaled_inputs,tf.math.reduce_mean(unscaled_inputs),tf.math.reduce_max(unscaled_inputs),tf.math.reduce_min(unscaled_inputs)],"unscaled_inputs",summarize=10,first_n=50)
 
     flow_to_hr = tf.constant(120.0,name="flow_to_hr")
     flow_scaling = tf.constant(100.0,name="flow_scaling")
@@ -335,7 +335,7 @@ class ntfCell(LayerRNNCell):
     current_flows = tf.multiply(unscaled_inputs[:,:,0],flow_to_hr)
     current_velocities = unscaled_inputs[:,:,2]
 
-    g = tf.constant(5.0,name="init_g")*tf.reshape(tf.reduce_mean(traffic_variables[:,:,5],1),[-1,1])#tf.expand_dims(tf.reduce_mean(traffic_variables[:,:,5],axis=-1),-1)#0.3#0.06#
+    g = tf.constant(10.0,name="init_g")*tf.reshape(tf.reduce_mean(traffic_variables[:,:,5],1),[-1,1])#tf.expand_dims(tf.reduce_mean(traffic_variables[:,:,5],axis=-1),-1)#0.3#0.06#
     current_densities = tf.multiply(unscaled_inputs[:,:,1],g)#+0.0*tf.truediv(current_flows, current_velocities*lane_num + 1e-6) # tf.multiply(unscaled_inputs[:,:,1], g)#tf.truediv(current_flows, current_velocities*lane_num + 1e-6) #unscaled_inputs[:,:,1] * g#tf.truediv(current_flows, current_velocities*lane_num + 1e-6)
     g = tf.Print(g,[g,tf.math.reduce_mean(g)],"g",summarize=10,first_n=10)
     g =  tf.clip_by_value(g,0.02,1000.0)
@@ -388,7 +388,7 @@ class ntfCell(LayerRNNCell):
 
     with tf.name_scope("future_velocity"):
         stat_speed =  tf.multiply( v_f, tf.exp( (tf.multiply(tf.truediv(-1.0,a),tf.math.pow(tf.truediv(current_densities,p_cr),a)))))
-        stat_speed =  tf.clip_by_value(stat_speed,20.0,120.0)
+        stat_speed =  tf.clip_by_value(stat_speed,30.0,120.0)
         stat_speed = tf.Print(stat_speed,[stat_speed,tf.math.reduce_max(stat_speed),tf.shape(stat_speed)],"stat_speed",summarize=10,first_n=10)
 
         sigma_v = 1.0*traffic_variables[:,:,7]
@@ -403,7 +403,7 @@ class ntfCell(LayerRNNCell):
                         +  1.0*epsilon_v
 
         future_vel = tf.Print(future_vel,[future_vel,tf.math.reduce_max(future_vel),tf.shape(future_vel)],"future_vel",summarize=10,first_n=10)#[32,45]
-        future_vel = tf.clip_by_value(future_vel,20.0,120.)
+        future_vel = tf.clip_by_value(future_vel,30.0,120.)
 
     sigma_q = 1.0*traffic_variables[:,:,8]
     noise_q = tf.random_normal(shape=tf.shape(sigma_q),mean=0, stddev=1, dtype=tf.float32)
