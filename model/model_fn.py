@@ -26,22 +26,31 @@ def build_model(mode, inputs, params):
         lstm_cell = ntfCell(params.num_cols,num_var = 16,max_vals = params.max_vals, all_seg_lens = params.seg_lens,use_peepholes=True,cell_clip=5.0)
         # lstm_cell = LSTMCell2(params.num_cols,use_peepholes=True,cell_clip=5.0)#,use_peepholes=True,cell_clip=3.0)
 
-        init_state = lstm_cell.zero_state(params.batch_size, dtype=tf.float32)
-        init_state = tf.identity(init_state, 'init_state') #Actually it works without this line. But it can be useful
-        _lstm_state_ = tf.contrib.rnn.LSTMStateTuple(init_state[0, :, :], init_state[1,:,:]+ tf.truediv(params.mean_vals,tf.convert_to_tensor(params.max_vals)+1e-3))
+        # init_state = lstm_cell.zero_state(params.batch_size, dtype=tf.float32)
+        # init_state = tf.identity(init_state, 'init_state') #Actually it works without this line. But it can be useful
+        # _lstm_state_ = tf.contrib.rnn.LSTMStateTuple(init_state[0, :, :], init_state[1,:,:]+ tf.truediv(params.mean_vals,tf.convert_to_tensor(params.max_vals)+1e-3))
 
+        in_means = tf.get_variable("in_means", initializer=tf.truncated_normal((tf.shape(tf.convert_to_tensor(params.max_vals)))))
+        in_var = tf.get_variable("in_var", initializer=tf.truncated_normal((tf.shape(tf.convert_to_tensor(params.max_vals)))))
+        in_sigma = 1.0*tf.exp(in_var)
+        in_noise = tf.random_normal(shape=tf.shape(in_sigma),mean=0, stddev=1, dtype=tf.float32)
+        in_add = tf.clip_by_value(in_means + tf.multiply(in_sigma,in_noise),-100.2,100.2)
+        in_add = tf.Print(in_add,[in_add,tf.math.reduce_min(in_add),tf.math.reduce_max(in_add)],"in_add",summarize=10,first_n=10)#[32,45]
 
-        out_means = tf.get_variable("out_means", initializer=tf.zeros(shape=(tf.shape(tf.convert_to_tensor(params.max_vals)))))
-        out_var = tf.get_variable("out_var", initializer=tf.zeros(shape=(tf.shape(tf.convert_to_tensor(params.max_vals)))))
-        out_sigma = 1.0*out_var
-        out_noise = tf.random_normal(shape=tf.shape(out_sigma),mean=0, stddev=1, dtype=tf.float32)
-        out_add = tf.clip_by_value(out_means + tf.multiply(out_sigma,out_noise),-100.2,100.2)
+        # out_means = tf.get_variable("out_means", initializer=tf.truncated_normal((tf.shape(tf.convert_to_tensor(params.max_vals)))))
+        # out_var = tf.get_variable("out_var", initializer=tf.truncated_normal((tf.shape(tf.convert_to_tensor(params.max_vals)))))
+        # out_sigma = 1.0*out_var
+        # out_noise = tf.random_normal(shape=tf.shape(out_sigma),mean=0, stddev=1, dtype=tf.float32)
+        # out_add = tf.clip_by_value(out_means + tf.multiply(out_sigma,out_noise),-100.2,100.2)
         # input_batch = input_batch + out_add
+        # out_add = tf.Print(out_add,[out_add,tf.math.reduce_min(out_add),tf.math.reduce_max(out_add)],"out_add",summarize=10,first_n=10)#[32,45]
+
         # initial_state[1] = initial_state[1] + params.max_vals
         # initial_state = [(tf.add(state[0],tf.ones_like(state[0])*params.max_vals), state[1]) for state in initial_state]
         #input_batch = tf.truediv(tf.log(input_batch+1.0),tf.log(tf.convert_to_tensor(params.max_vals)+1.0)+1e-6)
-        input_batch = tf.truediv(input_batch,tf.convert_to_tensor(params.max_vals)+1e-3) + out_add
-        out_add = tf.Print(out_add,[out_add,tf.math.reduce_min(out_add),tf.math.reduce_max(out_add)],"out_add",summarize=10,first_n=10)#[32,45]
+        input_batch = tf.truediv(input_batch + in_add,tf.convert_to_tensor(params.max_vals)+1e-3)
+
+
 
         # rnn_outputs, rnn_states  = tf.nn.dynamic_rnn(lstm_cell, input_batch, dtype=tf.float32,initial_state=_lstm_state_)
         rnn_outputs, rnn_states  = tf.nn.dynamic_rnn(lstm_cell, input_batch, dtype=tf.float32)
@@ -58,10 +67,10 @@ def build_model(mode, inputs, params):
         # apply projection to every timestep.
         # predicted_outputs = tf.map_fn(final_projection, rnn_outputs)
         # predicted_outputs =  tf.layers.dense(rnn_outputs, params.rnn_output_size,activation='linear')
-        predicted_outputs =  tf.multiply(rnn_outputs,tf.convert_to_tensor(params.max_vals)) - out_add#*200.0#*tf.log(tf.convert_to_tensor(params.max_vals)+1.0)#tf.layers.dense(rnn_outputs, params.rnn_output_size)
+        predicted_outputs =  tf.multiply(rnn_outputs,tf.convert_to_tensor(params.max_vals)) - in_add#*200.0#*tf.log(tf.convert_to_tensor(params.max_vals)+1.0)#tf.layers.dense(rnn_outputs, params.rnn_output_size)
         # predicted_outputs = tf.truediv(predicted_outputs,out_add+1e-3)
-        predicted_outputs = tf.Print(predicted_outputs,[predicted_outputs,tf.math.reduce_min(predicted_outputs),tf.math.reduce_mean(predicted_outputs),tf.math.reduce_max(predicted_outputs)],"predicted_outputs",summarize=18,first_n=50)
-        predicted_outputs =  tf.nn.relu(predicted_outputs)
+        predicted_outputs = tf.Print(predicted_outputs,[predicted_outputs[::5],tf.math.reduce_min(predicted_outputs),tf.math.reduce_mean(predicted_outputs),tf.math.reduce_max(predicted_outputs)],"predicted_outputs",summarize=18,first_n=50)
+        # predicted_outputs =  tf.nn.relu(predicted_outputs)
     else:
         raise NotImplementedError("Unknown model version: {}".format(params.model_version))
 

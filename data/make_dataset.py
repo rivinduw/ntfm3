@@ -10,7 +10,7 @@ import json
 
 # from scipy.stats import mstats
 
-def make_dataset(datadir = '/home/rwee015/Documents/Data/DataFromMikeSept2015/extract/',steps = 1,train_frac=0.5):
+def make_dataset(datadir = '/home/rwee015/Documents/Data/DataFromMikeSept2015/extract/',steps = 1,train_frac=0.6):
 
     print("building dataset")
 
@@ -75,14 +75,16 @@ def make_dataset(datadir = '/home/rwee015/Documents/Data/DataFromMikeSept2015/ex
     del someSegs
     del unstackedSegs
     # allData = allData + 1e-6
-    allDataIn = allData.fillna(0.0)[:int(len(allData)*0.8)]#method='pad',inplace=False)
+    allDataIn = allData.fillna(0.0)#[:int(len(allData)*0.8)]#method='pad',inplace=False)
     allData = allDataIn#.fillna(0.0,inplace=True)
 
     train_size = int(float(train_frac)*len(allData))
     print("train size:",str(train_size))
 
     max_vals = allData.iloc[:train_size,:][allData.iloc[:train_size,:]>0.0001].quantile(.999,axis=0).fillna(0.0)+1.0
+    max_vals = [float(i)+100.0 if (i==1.0 or i==1.001) else float(i) for i in max_vals]
     mean_vals = allData.iloc[:train_size,:][allData.iloc[:train_size,:]>0.0001].median(axis=0).fillna(0.0)
+    mean_vals = [float(i)+50.0 if (i==1.0 or i==1.001 or i==0.0 or i==0.001) else float(i) for i in mean_vals]
     pd.DataFrame(max_vals).T.to_csv('data/max_vals.csv',index=False)
 
     data_in_train = allDataIn.iloc[:train_size-steps,:]
