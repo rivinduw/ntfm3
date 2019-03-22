@@ -70,7 +70,7 @@ def build_model(mode, inputs, params):
         predicted_outputs =  tf.multiply(rnn_outputs,tf.convert_to_tensor(params.max_vals)) - in_add#*200.0#*tf.log(tf.convert_to_tensor(params.max_vals)+1.0)#tf.layers.dense(rnn_outputs, params.rnn_output_size)
         # predicted_outputs = tf.truediv(predicted_outputs,out_add+1e-3)
         predicted_outputs = tf.Print(predicted_outputs,[predicted_outputs[::5],tf.math.reduce_min(predicted_outputs),tf.math.reduce_mean(predicted_outputs),tf.math.reduce_max(predicted_outputs)],"predicted_outputs",summarize=18,first_n=50)
-        # predicted_outputs =  tf.nn.relu(predicted_outputs)
+        predicted_outputs =  tf.nn.relu(predicted_outputs)
     else:
         raise NotImplementedError("Unknown model version: {}".format(params.model_version))
 
@@ -168,8 +168,8 @@ def model_fn(mode, inputs, params, reuse=False):
 
     # predicted_outputs = tf.boolean_mask(predicted_outputs, feature_mask)
     # labels = tf.boolean_mask(labels, feature_mask)
-    labels_masked = tf.Print(labels_masked,[labels_masked,tf.math.reduce_max(labels_masked),tf.shape(labels_masked)],"labels_masked",summarize=12,first_n=10)
-    predicted_outputs_masked = tf.Print(predicted_outputs_masked,[predicted_outputs_masked,tf.math.reduce_max(predicted_outputs_masked),tf.shape(predicted_outputs_masked)],"predicted_outputs_masked",summarize=12,first_n=20)
+    # labels_masked = tf.Print(labels_masked,[labels_masked,tf.math.reduce_max(labels_masked),tf.shape(labels_masked)],"labels_masked",summarize=12,first_n=10)
+    # predicted_outputs_masked = tf.Print(predicted_outputs_masked,[predicted_outputs_masked,tf.math.reduce_max(predicted_outputs_masked),tf.shape(predicted_outputs_masked)],"predicted_outputs_masked",summarize=12,first_n=20)
     volume_accuracy = tf.Print(volume_accuracy,[volume_accuracy,tf.math.reduce_max(volume_accuracy),tf.shape(volume_accuracy)],"volume_accuracy",summarize=12,first_n=20)
     occ_accuracy = tf.Print(occ_accuracy,[occ_accuracy,tf.math.reduce_max(occ_accuracy),tf.shape(occ_accuracy)],"occ_accuracy",summarize=12,first_n=20)
     speed_accuracy = tf.Print(speed_accuracy,[speed_accuracy,tf.math.reduce_max(speed_accuracy),tf.shape(speed_accuracy)],"speed_accuracy",summarize=12,first_n=20)

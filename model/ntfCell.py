@@ -317,11 +317,11 @@ class ntfCell(LayerRNNCell):
     flow_scaling = tf.constant(100.0,name="flow_scaling")
     density_scaling = tf.constant(10.0,name="density_scaling")
 
-    v_f = tf.constant(240.,name="v_f") * traffic_variables[:,:,0]#120
+    v_f = tf.constant(240.,name="v_f") * 0.5# traffic_variables[:,:,0]#120
     v_f =  tf.clip_by_value(v_f,90.0,120.0)
-    a = tf.constant(2.86,name="a") * traffic_variables[:,:,1]#1.4324
+    a = tf.constant(2.86,name="a") * 0.5#traffic_variables[:,:,1]#1.4324
     a =  tf.clip_by_value(a,0.9,2.5)
-    p_cr = tf.constant(67.0,name="pcr") * traffic_variables[:,:,2]#33.5
+    p_cr = tf.constant(67.0,name="pcr") * 0.5#traffic_variables[:,:,2]#33.5
     p_cr =  tf.clip_by_value(p_cr,1.0,200.0)
 
     lane_num = tf.constant(3.0,name="lane_num") #check flow_to hr
@@ -343,10 +343,13 @@ class ntfCell(LayerRNNCell):
     r_in = tf.multiply(unscaled_inputs[:,:,3],flow_to_hr)
     r_out = tf.multiply(unscaled_inputs[:,:,4],flow_to_hr)
 
-    first_flow     = tf.multiply(tf.reduce_mean(traffic_variables[:,:,12],1),flow_to_hr*flow_scaling)
-    first_density  = tf.multiply(tf.reduce_mean(traffic_variables[:,:,13],1),density_scaling)
-    first_velocity = tf.multiply(tf.reduce_mean(traffic_variables[:,:,14],1),200.0)
-    last_density   = tf.multiply(tf.reduce_mean(traffic_variables[:,:,15],1),density_scaling)
+    first_flow     = tf.nn.relu(tf.multiply(tf.reduce_mean(traffic_variables[:,:,12],1),flow_to_hr*flow_scaling))
+    first_flow = tf.clip_by_value(first_flow,1.0,10000.0)
+    first_density  = tf.nn.relu(tf.multiply(tf.reduce_mean(traffic_variables[:,:,13],1),density_scaling))
+    first_density = tf.clip_by_value(first_density,0.1,500.0)
+    first_velocity = tf.nn.relu(tf.multiply(tf.reduce_mean(traffic_variables[:,:,14],1),200.0))
+    first_velocity = tf.clip_by_value(first_velocity,80.0,120.0)
+    last_density   = tf.nn.relu(tf.multiply(tf.reduce_mean(traffic_variables[:,:,15],1),density_scaling))
 
     first_flow     = tf.reshape(first_flow,[-1,1])
     first_density  = tf.reshape(first_density,[-1,1])
@@ -410,7 +413,7 @@ class ntfCell(LayerRNNCell):
     epsilon_q = tf.multiply(sigma_q,noise_q)
 
     future_flows = tf.multiply(future_rho,future_vel*lane_num) + 1.0*epsilon_q
-    future_flows = tf.clip_by_value(future_flows,0.0,100000.0)
+    future_flows = tf.clip_by_value(future_flows,0.0,10000.0)
 
     future_volumes = tf.truediv(future_flows,flow_to_hr)
     future_occupancies = tf.truediv(future_rho,g+1e-6)#tf.truediv(future_rho,g+1e-6)
@@ -430,7 +433,7 @@ class ntfCell(LayerRNNCell):
     # epsilon_out = tf.multiply(tf.exp(log_eps_out),sample_out)
     #
     # m = new_m + epsilon_out#tf.multiply(self._out_weights,new_m)#new_m
-    m = tf.clip_by_value(new_m,0.0,1000.0) #- meas_gamma#tf.multiply(self._out_weights,new_m)#new_m
+    m = tf.clip_by_value(new_m,0.0,100.0) #- meas_gamma#tf.multiply(self._out_weights,new_m)#new_m
 
     new_state = (LSTMStateTuple(c, m) if self._state_is_tuple else
                  array_ops.concat([c, m], 1))
