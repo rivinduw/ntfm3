@@ -7,6 +7,9 @@
 
     "window_size": 1440,
     "label_window": 1080,
+    "window_shift": 360,
+
+    "optimizer": "adam",
 
     "save_summary_steps": 100,
 

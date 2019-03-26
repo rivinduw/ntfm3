@@ -23,19 +23,20 @@ def build_model(mode, inputs, params):
     input_batch = inputs['input_batch']
 
     if params.model_version == 'lstm':
-        lstm_cell = ntfCell(params.num_cols,num_var = 16,max_vals = params.max_vals, all_seg_lens = params.seg_lens,use_peepholes=True,cell_clip=5.0)
+        lstm_cell = ntfCell(params.num_cols,num_var = 13,max_vals = params.max_vals, all_seg_lens = params.seg_lens,use_peepholes=True,cell_clip=5.0)
         # lstm_cell = LSTMCell2(params.num_cols,use_peepholes=True,cell_clip=5.0)#,use_peepholes=True,cell_clip=3.0)
 
         # init_state = lstm_cell.zero_state(params.batch_size, dtype=tf.float32)
         # init_state = tf.identity(init_state, 'init_state') #Actually it works without this line. But it can be useful
         # _lstm_state_ = tf.contrib.rnn.LSTMStateTuple(init_state[0, :, :], init_state[1,:,:]+ tf.truediv(params.mean_vals,tf.convert_to_tensor(params.max_vals)+1e-3))
 
-        in_means = tf.get_variable("in_means", initializer=tf.truncated_normal((tf.shape(tf.convert_to_tensor(params.max_vals)))))
-        in_var = tf.get_variable("in_var", initializer=tf.truncated_normal((tf.shape(tf.convert_to_tensor(params.max_vals)))))
-        in_sigma = 1.0*tf.exp(in_var)
-        in_noise = tf.random_normal(shape=tf.shape(in_sigma),mean=0, stddev=1, dtype=tf.float32)
-        in_add = tf.clip_by_value(in_means + tf.multiply(in_sigma,in_noise),-100.2,100.2)
-        in_add = tf.Print(in_add,[in_add,tf.math.reduce_min(in_add),tf.math.reduce_max(in_add)],"in_add",summarize=10,first_n=10)#[32,45]
+        in_means = tf.get_variable("in_means", initializer=tf.truncated_normal((tf.shape(tf.convert_to_tensor(params.max_vals))),mean=0.0,stddev=1.0))
+        # in_var = tf.get_variable("in_var", initializer=tf.truncated_normal((tf.shape(tf.convert_to_tensor(params.max_vals))),mean=1.0,stddev=0.035))
+        # in_sigma = in_var
+        # in_noise = tf.random_normal(shape=tf.shape(in_sigma),mean=0, stddev=1, dtype=tf.float32)
+        # in_add = tf.clip_by_value(in_means + tf.multiply(in_sigma,in_noise),-100.2,100.2)
+        in_add = in_means
+        in_add = tf.Print(in_add,[in_add,tf.math.reduce_min(in_add),tf.math.reduce_mean(in_add),tf.math.reduce_max(in_add)],"in_add",summarize=10,first_n=10)#[32,45]
 
         # out_means = tf.get_variable("out_means", initializer=tf.truncated_normal((tf.shape(tf.convert_to_tensor(params.max_vals)))))
         # out_var = tf.get_variable("out_var", initializer=tf.truncated_normal((tf.shape(tf.convert_to_tensor(params.max_vals)))))
@@ -67,7 +68,7 @@ def build_model(mode, inputs, params):
         # apply projection to every timestep.
         # predicted_outputs = tf.map_fn(final_projection, rnn_outputs)
         # predicted_outputs =  tf.layers.dense(rnn_outputs, params.rnn_output_size,activation='linear')
-        predicted_outputs =  tf.multiply(rnn_outputs,tf.convert_to_tensor(params.max_vals)) - in_add#*200.0#*tf.log(tf.convert_to_tensor(params.max_vals)+1.0)#tf.layers.dense(rnn_outputs, params.rnn_output_size)
+        predicted_outputs =  tf.math.subtract(tf.multiply(rnn_outputs,tf.convert_to_tensor(params.max_vals)),in_add)#*200.0#*tf.log(tf.convert_to_tensor(params.max_vals)+1.0)#tf.layers.dense(rnn_outputs, params.rnn_output_size)
         # predicted_outputs = tf.truediv(predicted_outputs,out_add+1e-3)
         predicted_outputs = tf.Print(predicted_outputs,[predicted_outputs[::5],tf.math.reduce_min(predicted_outputs),tf.math.reduce_mean(predicted_outputs),tf.math.reduce_max(predicted_outputs)],"predicted_outputs",summarize=18,first_n=50)
         predicted_outputs =  tf.nn.relu(predicted_outputs)
@@ -102,7 +103,7 @@ def model_fn(mode, inputs, params, reuse=False):
         # predictions = tf.argmax(logits, -1)
 
 
-    max_div = tf.convert_to_tensor(params.max_vals)+1.0
+    max_div = tf.convert_to_tensor(params.max_vals)+1e-3
 
     # Define loss and accuracy (we need to apply a mask to account for padding)
     # losses = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels)
@@ -197,7 +198,13 @@ def model_fn(mode, inputs, params, reuse=False):
 
     # Define training step that minimizes the loss with the Adam optimizer
     if is_training:
-        optimizer = tf.train.AdamOptimizer(params.learning_rate)#tf.train.AdamOptimizer(params.learning_rate)#RMSPropOptimizer(0.001)#tf.train.GradientDescentOptimizer(0.001)#
+        if params.optimizer=='adam':
+            optimizer = tf.train.AdamOptimizer(params.learning_rate)#tf.train.AdamOptimizer(params.learning_rate)#RMSPropOptimizer(0.001)#tf.train.GradientDescentOptimizer(0.001)#
+        elif params.optimizer=='sgd':
+            optimizer = tf.train.GradientDescentOptimizer(params.learning_rate)
+        else:
+            optimizer = tf.train.RMSPropOptimizer(params.learning_rate)
+
         global_step = tf.train.get_or_create_global_step()
         # train_op = optimizer.minimize(loss, global_step=global_step)
 
