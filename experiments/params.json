@@ -2,12 +2,13 @@
     "model_version": "lstm",
 
     "learning_rate": 1e-3,
-    "batch_size": 64,
+    "batch_size": 8,
     "num_epochs": 1000,
 
-    "window_size": 1440,
-    "label_window": 1080,
-    "window_shift": 360,
+    "window_size": 8640,
+    "label_window": 4320,
+    "window_shift": 10000,
+    "buffer_size":24,
 
     "optimizer": "adam",
 

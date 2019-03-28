@@ -14,7 +14,7 @@ def make_dataset(datadir = '/home/rwee015/Documents/Data/DataFromMikeSept2015/ex
 
     print("building dataset")
 
-    onRoad   = [ '672','673', '1','674', '1','675', '677', '1', '709', '1', '937', '1','938', '1','939','940','941'] #'676','936','671',
+    onRoad   = [ '672','673', '1','674', '1','675', '677', '1', '1', '1', '937', '1','938', '1','939','940','941'] #'676','936','671',709 removed
     onRamps  = [   '0','696', '0',  '0','699', '0',   '0', '0','1121', '0',   '0', '0',  '0', '951','0',  '0','953']
     offRamps = ['1087', '0',  '0',  '0', '0',  '0', '670', '0',   '0', '704', '0', '950','0', '0',  '0','952',  '0']
 
@@ -23,7 +23,7 @@ def make_dataset(datadir = '/home/rwee015/Documents/Data/DataFromMikeSept2015/ex
         os.makedirs("data/processedFiles/")
 
     allData=pd.DataFrame()
-    files = glob.glob(datadir+'*')
+    files = sorted(glob.glob(datadir+'*'))
     for file in files:
         data = pd.read_csv(file,parse_dates=[5])
 
@@ -60,13 +60,14 @@ def make_dataset(datadir = '/home/rwee015/Documents/Data/DataFromMikeSept2015/ex
         allData = pd.concat([allData,allSegs],axis=0)
         del allSegs
 
+
     #because of the zero/missing segments, the lengths are not accurate when calculated
     # means = someSegs.groupby(['carriagewaySegmentId']).mean()
     # means['distance'] = (1000*means['segmentTime'] * means['averageSpeed']/60)
     # seg_lens = means['distance'][[int(s) for s in onRoad]]
     # pd.DataFrame(seg_lens).T.to_csv('data/seg_lens.csv',index=False)
 
-    seg_lens = [ '590.0','411.0', '559.0','559.0', '396.5','396.5', '523.0', '419.0', '419.0', '468.0', '468.0', '431.0','431.0', '573.5','573.5','561.0','531.0']
+    seg_lens = [ '568.0','411.0', '559.0','559.0', '396.5','396.5', '523.0', '419.0', '419.0', '468.0', '468.0', '431.0','431.0', '573.5','573.5','561.0','531.0']
     #should be string. If doing again, just remove quotes from above
     seg_lens = [float(i) for i in seg_lens]
     pd.DataFrame(seg_lens).T.to_csv('data/seg_lens.csv',index=False)
@@ -81,10 +82,10 @@ def make_dataset(datadir = '/home/rwee015/Documents/Data/DataFromMikeSept2015/ex
     train_size = int(float(train_frac)*len(allData))
     print("train size:",str(train_size))
 
-    max_vals = allData.iloc[:train_size,:][allData.iloc[:train_size,:]>0.0001].quantile(.999,axis=0).fillna(0.0)+1.0
-    max_vals = [float(i)+100.0 if (i==1.0 or i==1.001) else float(i) for i in max_vals]
+    max_vals = allData.iloc[:train_size,:][allData.iloc[:train_size,:]>0.0001].quantile(.95,axis=0).fillna(0.0)+1.0
+    max_vals = [float(i)+100.0 if (i==1.0 or i==1.0) else float(i) for i in max_vals]
     mean_vals = allData.iloc[:train_size,:][allData.iloc[:train_size,:]>0.0001].median(axis=0).fillna(0.0)
-    mean_vals = [float(i)+50.0 if (i==1.0 or i==1.001 or i==0.0 or i==0.001) else float(i) for i in mean_vals]
+    # mean_vals = [float(i)+50.0 if (i==1.0 or i==1.001 or i==0.0 or i==0.001) else float(i) for i in mean_vals]
     pd.DataFrame(max_vals).T.to_csv('data/max_vals.csv',index=False)
 
     data_in_train = allDataIn.iloc[:train_size-steps,:]

@@ -71,7 +71,7 @@ if __name__ == '__main__':
     # Specify other parameters for the dataset and the model
     params.eval_size = params.dev_size
 
-    params.buffer_size = 360#params.train_size # buffer size for shuffling
+    # params.buffer_size = 360#params.train_size # buffer size for shuffling
     params.restore_dir= args.restore_dir#"experiments/last_weights"#"experiments/best_weights"#"experiments/last_weights"#None#args.restore_dir#"experiments/best_weights"#None#
 
     # Create the two iterators over the two datasets
