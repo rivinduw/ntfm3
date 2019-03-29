@@ -1,16 +1,16 @@
 {
     "model_version": "lstm",
 
-    "learning_rate": 1e-3,
+    "learning_rate": 0.001,
     "batch_size": 8,
     "num_epochs": 1000,
 
     "window_size": 8640,
     "label_window": 4320,
-    "window_shift": 10000,
-    "buffer_size":24,
+    "window_shift": 2160,
+    "buffer_size":12,
 
-    "optimizer": "adam",
+    "optimizer": "RMSProp",
 
     "save_summary_steps": 100,
 

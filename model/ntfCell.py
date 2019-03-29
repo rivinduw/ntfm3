@@ -79,6 +79,7 @@ class ntfCell(LayerRNNCell):
     self.input_spec = base_layer.InputSpec(ndim=2)
 
     self._num_units = num_units
+    self._num_units_c = num_proj
     self._use_peepholes = use_peepholes
     self._cell_clip = cell_clip
     self._initializer = initializers.get(initializer)
@@ -100,13 +101,13 @@ class ntfCell(LayerRNNCell):
 
     if num_proj:
       self._state_size = (
-          LSTMStateTuple(num_units, num_proj)
-          if state_is_tuple else num_units + num_proj)
+          LSTMStateTuple(self._num_units_c, num_proj)
+          if state_is_tuple else self._num_units_c + num_proj)
       self._output_size = num_proj
     else:
       self._state_size = (
-          LSTMStateTuple(num_units, num_units)
-          if state_is_tuple else 2 * num_units)
+          LSTMStateTuple(self._num_units_c, num_units)
+          if state_is_tuple else self._num_units_c + num_units)
       self._output_size = num_units
     self._max_values=tf.convert_to_tensor(max_vals, dtype=tf.float32)
     self._seg_lens =tf.convert_to_tensor(all_seg_lens, dtype=tf.float32)
@@ -129,7 +130,7 @@ class ntfCell(LayerRNNCell):
                        % str(inputs_shape))
 
     input_depth = inputs_shape[-1]
-    h_depth = self._num_units if self._num_proj is None else self._num_proj
+    h_depth = self._num_units_c#self._num_units if self._num_proj is None else self._num_proj
     maybe_partitioner = (
         partitioned_variables.fixed_size_partitioner(self._num_unit_shards)
         if self._num_unit_shards is not None
@@ -142,25 +143,25 @@ class ntfCell(LayerRNNCell):
 
     self._kernel = self.add_variable(
         _WEIGHTS_VARIABLE_NAME,
-        shape=[input_depth + h_depth, 4 * self._num_units],
+        shape=[input_depth + h_depth, 4 * self._num_units_c],
         initializer=self._initializer,
         partitioner=maybe_partitioner)
 
     # attention in inputs
-    self._kernel_attention = self.add_variable(
-        "_kernel_attention",
-        shape=[self._n_seg,2*self._num_units],
-        initializer=self._initializer,
-        partitioner=maybe_partitioner)
-    self._bias_attention = self.add_variable(
-        "_bias_attention",
-        shape=[2* self._num_units],
-        initializer=init_ops.zeros_initializer)
+    # self._kernel_attention = self.add_variable(
+    #     "_kernel_attention",
+    #     shape=[self._n_seg,2*self._num_units],
+    #     initializer=self._initializer,
+    #     partitioner=maybe_partitioner)
+    # self._bias_attention = self.add_variable(
+    #     "_bias_attention",
+    #     shape=[2* self._num_units],
+    #     initializer=init_ops.zeros_initializer)
 
 
     self._kernel_context = self.add_variable(
         "traffic_context/%s" % _WEIGHTS_VARIABLE_NAME,
-        shape=[256, self._num_var*self._n_seg],
+        shape=[self._num_units_c, self._num_var*self._n_seg],
         initializer=self._initializer,#tf.keras.initializers.TruncatedNormal(mean=0.5,stddev=0.25),#tf.keras.initializers.RandomUniform(minval=0.0, maxval=1.0),
         partitioner=maybe_partitioner)
     self._bias_context = self.add_variable(
@@ -186,12 +187,12 @@ class ntfCell(LayerRNNCell):
     self._in_weights = self.add_variable(
         "_in_weights/%s" % _WEIGHTS_VARIABLE_NAME,
         shape=[self._num_units],
-        initializer=init_ops.ones_initializer)#,
-        #partitioner=maybe_partitioner)
-    self._in_means = self.add_variable(
-        "_in_means/%s" % _WEIGHTS_VARIABLE_NAME,
-        shape=[self._num_units],
-        initializer=init_ops.zeros_initializer)#,
+        initializer=init_ops.ones_initializer,
+        partitioner=maybe_partitioner)
+    # self._in_means = self.add_variable(
+    #     "_in_means/%s" % _WEIGHTS_VARIABLE_NAME,
+    #     shape=[self._num_units],
+    #     initializer=init_ops.zeros_initializer)#,
         # partitioner=maybe_partitioner)
 
     # self._kernel_outm = self.add_variable(
@@ -211,14 +212,14 @@ class ntfCell(LayerRNNCell):
       initializer = init_ops.zeros_initializer(dtype=self.dtype)
     self._bias = self.add_variable(
         _BIAS_VARIABLE_NAME,
-        shape=[self._num_splits * self._num_units],
+        shape=[self._num_splits * self._num_units_c],
         initializer=initializer)
     if self._use_peepholes:
-      self._w_f_diag = self.add_variable("w_f_diag", shape=[self._num_units],
+      self._w_f_diag = self.add_variable("w_f_diag", shape=[self._num_units_c],
                                          initializer=self._initializer)
-      self._w_i_diag = self.add_variable("w_i_diag", shape=[self._num_units],
+      self._w_i_diag = self.add_variable("w_i_diag", shape=[self._num_units_c],
                                          initializer=self._initializer)
-      self._w_o_diag = self.add_variable("w_o_diag", shape=[self._num_units],
+      self._w_o_diag = self.add_variable("w_o_diag", shape=[self._num_units_c],
                                          initializer=self._initializer)
 
     if self._num_proj is not None:
@@ -228,7 +229,7 @@ class ntfCell(LayerRNNCell):
           else None)
       self._proj_kernel = self.add_variable(
           "projection/%s" % _WEIGHTS_VARIABLE_NAME,
-          shape=[self._num_units, self._num_proj],
+          shape=[self._num_units_c, self._num_proj],
           initializer=self._initializer,
           partitioner=maybe_proj_partitioner)
 
@@ -255,14 +256,14 @@ class ntfCell(LayerRNNCell):
       ValueError: If input size cannot be inferred from inputs via
         static shape inference.
     """
-    num_proj = self._num_units if self._num_proj is None else self._num_proj
+    num_proj = self._num_units_c#self._num_units if self._num_proj is None else self._num_proj
     sigmoid = math_ops.sigmoid
 
     if self._state_is_tuple:
       (c_prev, m_prev) = state
     else:
-      c_prev = array_ops.slice(state, [0, 0], [-1, self._num_units])
-      m_prev = array_ops.slice(state, [0, self._num_units], [-1, num_proj])
+      c_prev = array_ops.slice(state, [0, 0], [-1, self._num_units_c])
+      m_prev = array_ops.slice(state, [0, self._num_units_c], [-1, num_proj])
 
     input_size = inputs.get_shape().with_rank(2).dims[1].value
     if input_size is None:
@@ -284,10 +285,10 @@ class ntfCell(LayerRNNCell):
     att_a = sigmoid(-(un_inputs*1e15-1e9))
     att_b = sigmoid((un_inputs*1e15-1e9))
 
-    m_prev_t = tf.multiply(m_prev_t,self._in_weights)
+    inputs2 = tf.multiply(inputs,self._in_weights)
     # m_prev = nn_ops.bias_add(m_prev,self._in_means)
 
-    inputs2 = inputs*att_b + m_prev_t*att_a
+    inputs2 = inputs2*att_b + m_prev_t*att_a
 
     # inputs2 = tf.multiply(self._in_weights,inputs2)
 
@@ -328,7 +329,7 @@ class ntfCell(LayerRNNCell):
         # pylint: enable=invalid-unary-operand-type
 
     m_t = array_ops.slice(m, [0, 0], [-1, self._num_units])
-    m_c = array_ops.slice(m, [0, self._num_units], [-1, num_proj-self._num_units])
+    m_c = array_ops.slice(m, [0, self._num_units], [-1, self._num_units_c-self._num_units])
 
     ntf_matrix = math_ops.matmul(m, self._kernel_context)
     ntf_matrix = (nn_ops.bias_add(ntf_matrix, self._bias_context))#tf.nn.relu
@@ -376,13 +377,22 @@ class ntfCell(LayerRNNCell):
     r_in = tf.multiply(unscaled_inputs[:,:,3],flow_to_hr)
     r_out = tf.multiply(unscaled_inputs[:,:,4],flow_to_hr)
 
-    first_flow     = tf.nn.relu(tf.multiply(tf.reduce_mean((traffic_variables[:,:,0]),1),flow_to_hr*flow_scaling))
+    first_flow     = tf.nn.relu(tf.multiply(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,0],keep_prob=0.5),1),flow_to_hr*flow_scaling))
+
+    noise_q = 2000.0*tf.reduce_mean(tf.nn.tanh(tf.nn.dropout(traffic_variables[:,:,13],keep_prob=0.5)),1)#tf.random_normal(shape=tf.shape(first_flow),mean=0, stddev=100, dtype=tf.float32)
+    noise_d = 20.0*tf.reduce_mean(tf.nn.tanh(tf.nn.dropout(traffic_variables[:,:,14],keep_prob=0.5)),1)#tf.random_normal(shape=tf.shape(first_flow),mean=0, stddev=10, dtype=tf.float32)
+    noise_dN = 20.0*tf.reduce_mean(tf.nn.tanh(tf.nn.dropout(traffic_variables[:,:,15],keep_prob=0.5)),1)#
+    noise_v = 20.0*tf.reduce_mean(tf.nn.tanh(tf.nn.dropout(traffic_variables[:,:,16],keep_prob=0.5)),1)#tf.random_normal(shape=tf.shape(first_flow),mean=0, stddev=10, dtype=tf.float32)
+
+    first_flow = first_flow + noise_q
+
     first_flow     = tf.clip_by_value(first_flow,1.0,10000.0)
-    first_density  = tf.nn.relu(tf.multiply(tf.reduce_mean((traffic_variables[:,:,1]),1),density_scaling))
+    first_density  = tf.nn.relu(tf.multiply(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,1],keep_prob=0.5),1),density_scaling)+noise_d)
     first_density  = tf.clip_by_value(first_density,0.1,500.0)
-    first_velocity = tf.nn.relu(tf.multiply(tf.reduce_mean((traffic_variables[:,:,2]),1),240.0))
+    first_velocity = tf.nn.relu(tf.multiply(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,2],keep_prob=0.5),1),240.0)+noise_v)
     first_velocity = tf.clip_by_value(first_velocity,30.0,120.0)
-    last_density   = tf.nn.relu(tf.multiply(tf.reduce_mean((traffic_variables[:,:,3]),1),density_scaling))
+    last_density   = tf.nn.relu(tf.multiply(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,3],keep_prob=0.5),1),density_scaling)+noise_d)
+    last_density  = tf.clip_by_value(last_density,0.1,500.0)
 
     first_flow     = tf.reshape(first_flow,[-1,1])
     first_density  = tf.reshape(first_density,[-1,1])
@@ -432,7 +442,7 @@ class ntfCell(LayerRNNCell):
 
     with tf.name_scope("future_velocity"):
         stat_speed =  tf.multiply( v_f, tf.exp( (tf.multiply(tf.truediv(-1.0,a),tf.math.pow(tf.truediv(current_densities,p_cr),a)))))
-        stat_speed =  tf.clip_by_value(stat_speed,30.0,120.0)
+        stat_speed =  tf.clip_by_value(stat_speed,20.0,120.0)
         stat_speed = tf.Print(stat_speed,[stat_speed,tf.math.reduce_max(stat_speed),tf.shape(stat_speed)],"stat_speed",summarize=10,first_n=10)
 
         epsilon_v = 20.0*tf.nn.tanh(traffic_variables[:,:,7])
@@ -447,7 +457,7 @@ class ntfCell(LayerRNNCell):
                         +  1.0*epsilon_v
 
         future_vel = tf.Print(future_vel,[future_vel,tf.math.reduce_max(future_vel),tf.shape(future_vel)],"future_vel",summarize=10,first_n=10)#[32,45]
-        future_vel = tf.clip_by_value(future_vel,30.0,101.)
+        future_vel = tf.clip_by_value(future_vel,20.0,101.)
 
     epsilon_q = 200.0*tf.nn.tanh(traffic_variables[:,:,8])
     # noise_q = tf.random_normal(shape=tf.shape(sigma_q),mean=0, stddev=1, dtype=tf.float32)
@@ -478,11 +488,13 @@ class ntfCell(LayerRNNCell):
     m_clip = tf.clip_by_value(new_m,0.0,100.0) #- meas_gamma#tf.multiply(self._out_weights,new_m)#new_m
     m = array_ops.concat([m_clip, m_c], 1)
 
+    m_out = tf.truediv(m_clip,self._in_weights)
+    m_out = array_ops.concat([m_out, m_c], 1)
 
     new_state = (LSTMStateTuple(c, m) if self._state_is_tuple else
                  array_ops.concat([c, m], 1))
 
-    return m, new_state
+    return m_out, new_state
 
   def get_config(self):
     config = {

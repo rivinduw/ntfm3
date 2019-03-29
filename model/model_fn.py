@@ -23,7 +23,7 @@ def build_model(mode, inputs, params):
     input_batch = inputs['input_batch']
 
     if params.model_version == 'lstm':
-        lstm_cell = ntfCell(params.num_cols,num_var = 13,max_vals = params.max_vals, all_seg_lens = params.seg_lens,use_peepholes=True,cell_clip=5.0,num_proj=256)
+        lstm_cell = ntfCell(params.num_cols,num_var = 17,max_vals = params.max_vals, all_seg_lens = params.seg_lens,use_peepholes=True,cell_clip=5.0,num_proj=512)
         # lstm_cell = LSTMCell2(params.num_cols,use_peepholes=True,cell_clip=5.0)#,use_peepholes=True,cell_clip=3.0)
 
         # init_state = lstm_cell.zero_state(params.batch_size, dtype=tf.float32)
