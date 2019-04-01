@@ -379,19 +379,19 @@ class ntfCell(LayerRNNCell):
 
     first_flow     = tf.nn.relu(tf.multiply(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,0],keep_prob=0.5),1),flow_to_hr*flow_scaling))
 
-    noise_q = 2000.0*tf.reduce_mean(tf.nn.tanh(tf.nn.dropout(traffic_variables[:,:,13],keep_prob=0.5)),1)#tf.random_normal(shape=tf.shape(first_flow),mean=0, stddev=100, dtype=tf.float32)
-    noise_d = 20.0*tf.reduce_mean(tf.nn.tanh(tf.nn.dropout(traffic_variables[:,:,14],keep_prob=0.5)),1)#tf.random_normal(shape=tf.shape(first_flow),mean=0, stddev=10, dtype=tf.float32)
-    noise_dN = 20.0*tf.reduce_mean(tf.nn.tanh(tf.nn.dropout(traffic_variables[:,:,15],keep_prob=0.5)),1)#
-    noise_v = 20.0*tf.reduce_mean(tf.nn.tanh(tf.nn.dropout(traffic_variables[:,:,16],keep_prob=0.5)),1)#tf.random_normal(shape=tf.shape(first_flow),mean=0, stddev=10, dtype=tf.float32)
+    # noise_q = 2000.0*tf.reduce_mean(tf.nn.tanh(tf.nn.dropout(traffic_variables[:,:,13],keep_prob=0.5)),1)#tf.random_normal(shape=tf.shape(first_flow),mean=0, stddev=100, dtype=tf.float32)
+    # noise_d = 20.0*tf.reduce_mean(tf.nn.tanh(tf.nn.dropout(traffic_variables[:,:,14],keep_prob=0.5)),1)#tf.random_normal(shape=tf.shape(first_flow),mean=0, stddev=10, dtype=tf.float32)
+    # noise_dN = 20.0*tf.reduce_mean(tf.nn.tanh(tf.nn.dropout(traffic_variables[:,:,15],keep_prob=0.5)),1)#
+    # noise_v = 20.0*tf.reduce_mean(tf.nn.tanh(tf.nn.dropout(traffic_variables[:,:,16],keep_prob=0.5)),1)#tf.random_normal(shape=tf.shape(first_flow),mean=0, stddev=10, dtype=tf.float32)
 
-    first_flow = first_flow + noise_q
+    first_flow = first_flow #+ noise_q
 
     first_flow     = tf.clip_by_value(first_flow,1.0,10000.0)
-    first_density  = tf.nn.relu(tf.multiply(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,1],keep_prob=0.5),1),density_scaling)+noise_d)
+    first_density  = tf.nn.relu(tf.multiply(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,1],keep_prob=0.5),1),density_scaling))#+noise_d)
     first_density  = tf.clip_by_value(first_density,0.1,500.0)
-    first_velocity = tf.nn.relu(tf.multiply(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,2],keep_prob=0.5),1),240.0)+noise_v)
+    first_velocity = tf.nn.relu(tf.multiply(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,2],keep_prob=0.5),1),240.0))#+noise_v)
     first_velocity = tf.clip_by_value(first_velocity,30.0,120.0)
-    last_density   = tf.nn.relu(tf.multiply(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,3],keep_prob=0.5),1),density_scaling)+noise_d)
+    last_density   = tf.nn.relu(tf.multiply(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,3],keep_prob=0.5),1),density_scaling))#+noise_d)
     last_density  = tf.clip_by_value(last_density,0.1,500.0)
 
     first_flow     = tf.reshape(first_flow,[-1,1])
