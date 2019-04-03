@@ -23,7 +23,7 @@ def build_model(mode, inputs, params):
     input_batch = inputs['input_batch']
 
     if params.model_version == 'lstm':
-        lstm_cell = ntfCell(params.num_cols,num_var = 17,max_vals = params.max_vals, all_seg_lens = params.seg_lens,use_peepholes=True,cell_clip=5.0,num_proj=512)
+        lstm_cell = ntfCell(params.num_cols,num_var = 49,max_vals = params.max_vals, all_seg_lens = params.seg_lens,use_peepholes=True,cell_clip=5.0,num_proj=512)
         # lstm_cell = LSTMCell2(params.num_cols,use_peepholes=True,cell_clip=5.0)#,use_peepholes=True,cell_clip=3.0)
 
         # init_state = lstm_cell.zero_state(params.batch_size, dtype=tf.float32)
@@ -170,7 +170,7 @@ def model_fn(mode, inputs, params, reuse=False):
     pick_loss_mask = np.full((params.batch_size,params.window_size,params.num_cols), False)
     pick_loss_mask[:,params.start_error:,0::5*1]= True
     pick_loss_mask[:,params.start_error:,1::5*1]= True
-    pick_loss_mask[:,params.start_error:,2::5*1]= True
+    pick_loss_mask[:,params.start_error:,2::5*3]= True
     pick_loss_mask[:,params.start_error:,3::5]= True
     pick_loss_mask[:,params.start_error:,4::5]= True
     feature_mask = tf.math.logical_and(feature_mask,pick_loss_mask)
