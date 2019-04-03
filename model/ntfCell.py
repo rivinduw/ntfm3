@@ -355,7 +355,7 @@ class ntfCell(LayerRNNCell):
     a = tf.constant(2.86,name="a") * sigmoid(traffic_variables[:,:,10])#tf.reshape(tf.reduce_mean((traffic_variables[:,:,8]),1),[-1,1])#1.4324
     a =  tf.clip_by_value(a,0.9,1.9)
     p_cr = tf.constant(67.0,name="pcr") * sigmoid(traffic_variables[:,:,11])#tf.reshape(tf.reduce_mean((traffic_variables[:,:,9]),1),[-1,1])#33.5
-    p_cr =  tf.clip_by_value(p_cr,1.0,200.0)
+    p_cr =  tf.clip_by_value(p_cr,1.0,200.0) #TODO:remove sigmoid above??
 
     lane_num = tf.constant(6.0,name="lane_num") * sigmoid(traffic_variables[:,:,12])#check flow_to hr
     T = tf.truediv(tf.constant(10.0,name="T"),3600.0) # 1e-6* traffic_variables[:,:,7] #check log exp v
@@ -390,9 +390,9 @@ class ntfCell(LayerRNNCell):
     first_density  = tf.nn.relu(tf.multiply(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,1],keep_prob=0.5),1),density_scaling))#+noise_d)
     first_density  = tf.clip_by_value(first_density,0.1,500.0)
     first_velocity = tf.nn.relu(tf.multiply(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,2],keep_prob=0.5),1),240.0))#+noise_v)
-    first_velocity = tf.clip_by_value(first_velocity,30.0,120.0)
+    first_velocity = tf.clip_by_value(first_velocity,80.0,120.0)
     last_density   = tf.nn.relu(tf.multiply(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,3],keep_prob=0.5),1),density_scaling))#+noise_d)
-    last_density  = tf.clip_by_value(last_density,0.1,500.0)
+    last_density  = tf.clip_by_value(last_density,10.0,500.0)
 
     first_flow     = tf.reshape(first_flow,[-1,1])
     first_density  = tf.reshape(first_density,[-1,1])
@@ -416,6 +416,7 @@ class ntfCell(LayerRNNCell):
     # next_densities  = array_ops.concat([current_densities[:,1:],current_densities[:,-1:]],1)
 
     #flow_beta * current_flows
+    ##TODO: dropout here?? need at least two vars
     future_r_in = tf.multiply(traffic_variables[:,:,4],flow_scaling/10.0)#*flow_scaling#tf.truediv(flow_scaling * traffic_variables[:,:,3],120.0)
     beta_out = tf.clip_by_value(traffic_variables[:,:,5],0.0,1.0)
     future_r_out = tf.truediv(tf.multiply(beta_out,prev_flows),flow_to_hr)#flow_scaling#0.*traffic_variables[:,:,4]*current_flows

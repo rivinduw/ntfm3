@@ -117,7 +117,7 @@ def model_fn(mode, inputs, params, reuse=False):
     # feature_mask[:,::18,1::5]=True
     # losses = tf.boolean_mask(losses, feature_mask)
     # predicted_outputs = tf.reshape(tf.boolean_mask(predicted_outputs, feature_mask),[params.batch_size,params.window_size//18,-1])
-    feature_mask = labels > 1e-4
+    feature_mask = labels > 1e-6
     # feature_mask[:,:,3::5] = True
     # feature_mask[:,:,4::5] = True
 
@@ -166,6 +166,15 @@ def model_fn(mode, inputs, params, reuse=False):
     # label_mask[:,::18,::5]=True
     # label_mask[:,::18,1::5]=True
     # labels = tf.reshape(tf.boolean_mask(labels, label_mask),[params.batch_size,params.window_size//18,-1])
+
+    pick_loss_mask = np.full((params.batch_size,params.window_size,params.num_cols), False)
+    pick_loss_mask[:,params.start_error:,0::5*1]= True
+    pick_loss_mask[:,params.start_error:,1::5*1]= True
+    pick_loss_mask[:,params.start_error:,2::5*1]= True
+    pick_loss_mask[:,params.start_error:,3::5]= True
+    pick_loss_mask[:,params.start_error:,4::5]= True
+    feature_mask = tf.math.logical_and(feature_mask,pick_loss_mask)
+
     predicted_outputs_masked = tf.boolean_mask(predicted_outputs, feature_mask)#tf.boolean_mask(predicted_outputs/max_div, feature_mask)
     labels_masked            = tf.boolean_mask(labels, feature_mask)#tf.boolean_mask(labels/max_div, feature_mask)
     # log_lbl_masked           = labels_masked#tf.boolean_mask(tf.log(labels+1.0), feature_mask)
