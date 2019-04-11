@@ -23,7 +23,7 @@ def build_model(mode, inputs, params):
     input_batch = inputs['input_batch']
 
     if params.model_version == 'lstm':
-        lstm_cell = ntfCell(params.num_cols,num_var = 49,max_vals = params.max_vals, all_seg_lens = params.seg_lens,use_peepholes=True,cell_clip=5.0,num_proj=512)
+        lstm_cell = ntfCell(params.num_cols,num_var = 450,max_vals = params.max_vals, all_seg_lens = params.seg_lens,use_peepholes=True,cell_clip=5.0,num_proj=512)
         # lstm_cell = LSTMCell2(params.num_cols,use_peepholes=True,cell_clip=5.0)#,use_peepholes=True,cell_clip=3.0)
 
         # init_state = lstm_cell.zero_state(params.batch_size, dtype=tf.float32)
@@ -50,7 +50,7 @@ def build_model(mode, inputs, params):
         # initial_state = [(tf.add(state[0],tf.ones_like(state[0])*params.max_vals), state[1]) for state in initial_state]
         #input_batch = tf.truediv(tf.log(input_batch+1.0),tf.log(tf.convert_to_tensor(params.max_vals)+1.0)+1e-6)
         # input_batch = tf.truediv(input_batch + 0.0,tf.convert_to_tensor(params.max_vals)+1e-3)
-        input_batch = tf.truediv(input_batch,tf.convert_to_tensor(params.max_vals)+1e-3)
+        input_batch = tf.truediv(input_batch,tf.convert_to_tensor([2459]+params.max_vals)+1e-3)
 
 
 
@@ -76,6 +76,19 @@ def build_model(mode, inputs, params):
         predicted_outputs = tf.multiply(rnn_outputs,tf.convert_to_tensor(params.max_vals))
         # predicted_outputs = tf.Print(predicted_outputs,[predicted_outputs[::5],tf.math.reduce_min(predicted_outputs),tf.math.reduce_mean(predicted_outputs),tf.math.reduce_max(predicted_outputs)],"predicted_outputs",summarize=18,first_n=50)
         predicted_outputs = tf.nn.relu(predicted_outputs)
+
+        # """multi
+        # """
+        # rnn_outputs1, rnn_states1  = tf.nn.dynamic_rnn(lstm_cell, input_batch, dtype=tf.float32)
+        # rnn_outputs1 = tf.slice(rnn_outputs1, [0,0, 0], [-1,-1, params.num_cols])
+        # predicted_outputs1 = tf.multiply(rnn_outputs1,tf.convert_to_tensor(params.max_vals))
+        # predicted_outputs1 = tf.nn.relu(predicted_outputs1)
+        #
+        # rnn_outputs2, rnn_states2  = tf.nn.dynamic_rnn(lstm_cell, input_batch, dtype=tf.float32)
+        # rnn_outputs2 = tf.slice(rnn_outputs2, [0,0, 0], [-1,-1, params.num_cols])
+        # predicted_outputs2 = tf.multiply(rnn_outputs2,tf.convert_to_tensor(params.max_vals))
+        # predicted_outputs2 = tf.nn.relu(predicted_outputs2)
+
     else:
         raise NotImplementedError("Unknown model version: {}".format(params.model_version))
 
@@ -104,7 +117,11 @@ def model_fn(mode, inputs, params, reuse=False):
     with tf.variable_scope('model', reuse=reuse):
         # Compute the output distribution of the model and the predictions
         predicted_outputs = build_model(mode, inputs, params)
-        # predictions = tf.argmax(logits, -1)
+    # with tf.variable_scope('model1', reuse=reuse):
+    #     predicted_outputs1 = build_model(mode, inputs, params)
+    # with tf.variable_scope('model2', reuse=reuse):
+    #     predicted_outputs2 = build_model(mode, inputs, params)
+    #     # predictions = tf.argmax(logits, -1)
 
 
     max_div = tf.convert_to_tensor(params.max_vals)+1e-3
@@ -117,13 +134,14 @@ def model_fn(mode, inputs, params, reuse=False):
     # feature_mask[:,::18,1::5]=True
     # losses = tf.boolean_mask(losses, feature_mask)
     # predicted_outputs = tf.reshape(tf.boolean_mask(predicted_outputs, feature_mask),[params.batch_size,params.window_size//18,-1])
+    labels = tf.slice(labels, [0,0, 1], [-1,-1, params.num_cols])
     feature_mask = labels > 1e-6
     # feature_mask[:,:,3::5] = True
     # feature_mask[:,:,4::5] = True
 
 
     predicted_outputs_exp = predicted_outputs#tf.exp(predicted_outputs)
-
+    # params.num_cols = params.num_cols+1
     #for volume accuracy
     volume_mask = np.full((params.batch_size,params.window_size,params.num_cols), False)
     volume_mask[:,:,::5] = True
@@ -170,9 +188,9 @@ def model_fn(mode, inputs, params, reuse=False):
     pick_loss_mask = np.full((params.batch_size,params.window_size,params.num_cols), False)
     pick_loss_mask[:,params.start_error:,0::5*1]= True
     pick_loss_mask[:,params.start_error:,1::5*1]= True
-    pick_loss_mask[:,params.start_error:,2::5*3]= True
-    pick_loss_mask[:,params.start_error:,3::5]= True
-    pick_loss_mask[:,params.start_error:,4::5]= True
+    pick_loss_mask[::4,params.start_error:,2::5*1]= True
+    pick_loss_mask[::4,params.start_error:,3::5*1]= True
+    pick_loss_mask[::4,params.start_error:,4::5*1]= True
     feature_mask = tf.math.logical_and(feature_mask,pick_loss_mask)
 
     predicted_outputs_masked = tf.boolean_mask(predicted_outputs, feature_mask)#tf.boolean_mask(predicted_outputs/max_div, feature_mask)
@@ -203,7 +221,34 @@ def model_fn(mode, inputs, params, reuse=False):
     # losses = tf.boolean_mask(losses, timestep_mask)
 
     # loss = tf.losses.mean_squared_error(labels_masked,predicted_outputs_masked)#tf.reduce_mean(losses)
-    mse = tf.losses.mean_squared_error(labels_masked,predicted_outputs_masked)
+    # mse = tf.losses.mean_squared_error(labels_masked,predicted_outputs_masked)
+    # loss = mse
+
+    # predicted_outputs1 = tf.boolean_mask(predicted_outputs1, feature_mask)
+    # error1 = tf.subtract(labels_masked,predicted_outputs1)
+    # quantile1 = 0.9
+    # loss1 = tf.reduce_mean(tf.maximum(quantile1*error1, (quantile1-1)*error1), axis=-1)
+    #
+    # predicted_outputs2 = tf.boolean_mask(predicted_outputs2, feature_mask)
+    # error2 = tf.subtract(labels_masked,predicted_outputs2)
+    # quantile2 = 0.1
+    # loss2 = tf.reduce_mean(tf.maximum(quantile2*error2, (quantile2-1)*error2), axis=-1)
+    #
+    error = tf.subtract(labels_masked,predicted_outputs_masked)
+    quantile3 = 0.5
+    loss3 = tf.reduce_mean(tf.maximum(quantile3*error, (quantile3-1)*error), axis=-1)
+
+    # loss = loss3 #loss1 + loss2 + loss3
+
+    total_error = tf.reduce_sum(tf.square(tf.subtract(labels_masked, tf.reduce_mean(labels_masked))))
+    unexplained_error = tf.reduce_sum(tf.square(tf.subtract(labels_masked, predicted_outputs_masked)))
+    # R_squared = tf.subtract(1.0, tf.div(unexplained_error, total_error))
+    huber_loss = tf.losses.huber_loss(labels_masked,predicted_outputs_masked)
+    loss = huber_loss #tf.reduce_sum(tf.div(unexplained_error, total_error)) + loss3 + huber_loss
+
+    # predicted_outputs = predicted_outputs1
+
+
 
     # accuracy = tf.reduce_mean(tf.cast(tf.equal(labels, predictions), tf.float32))
     TINY = 1e-6
@@ -213,7 +258,7 @@ def model_fn(mode, inputs, params, reuse=False):
         ,0,1))
     accuracy = 1 - mape
 
-    loss = mse
+
 
     # Define training step that minimizes the loss with the Adam optimizer
     if is_training:
@@ -221,8 +266,14 @@ def model_fn(mode, inputs, params, reuse=False):
             optimizer = tf.train.AdamOptimizer(params.learning_rate)#tf.train.AdamOptimizer(params.learning_rate)#RMSPropOptimizer(0.001)#tf.train.GradientDescentOptimizer(0.001)#
         elif params.optimizer=='sgd':
             optimizer = tf.train.GradientDescentOptimizer(params.learning_rate)
-        else:
+        elif params.optimizer=='rms':
             optimizer = tf.train.RMSPropOptimizer(params.learning_rate)
+        elif params.optimizer=='mom':
+            optimizer = tf.train.MomentumOptimizer(params.learning_rate,momentum=0.9,use_nesterov=True)
+        elif params.optimizer=='adamw':
+            optimizer = tf.contrib.opt.AdamWOptimizer(weight_decay=0.3,learning_rate=params.learning_rate)
+        else:
+            optimizer = tf.train.GradientDescentOptimizer(params.learning_rate)
 
         global_step = tf.train.get_or_create_global_step()
         # train_op = optimizer.minimize(loss, global_step=global_step)

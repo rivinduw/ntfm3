@@ -281,11 +281,14 @@ class ntfCell(LayerRNNCell):
     # inputs_err = inputs #+ meas_gamma
     m_prev_t = array_ops.slice(m_prev, [0, 0], [-1, self._num_units])
 
-    un_inputs = tf.multiply(inputs,self._max_values+1e-6)
+    inputs2 = array_ops.slice(inputs, [0, 1], [-1, self._num_units])
+
+    un_inputs = tf.multiply(inputs2,self._max_values+1e-6)
     att_a = sigmoid(-(un_inputs*1e15-1e9))
     att_b = sigmoid((un_inputs*1e15-1e9))
 
-    inputs2 = tf.multiply(inputs,self._in_weights)
+
+    #inputs2 = tf.multiply(inputs2,self._in_weights)
     # m_prev = nn_ops.bias_add(m_prev,self._in_means)
 
     inputs2 = inputs2*att_b + m_prev_t*att_a
@@ -357,6 +360,7 @@ class ntfCell(LayerRNNCell):
     p_cr = tf.constant(67.0,name="pcr") * (traffic_variables[:,:,11])#tf.reshape(tf.reduce_mean((traffic_variables[:,:,9]),1),[-1,1])#33.5
     p_cr =  tf.clip_by_value(p_cr,1.0,200.0) #TODO:remove sigmoid above??
 
+
     lane_num = tf.constant(6.0,name="lane_num") * sigmoid(traffic_variables[:,:,12])#check flow_to hr
     T = tf.truediv(tf.constant(10.0,name="T"),3600.0) # 1e-6* traffic_variables[:,:,7] #check log exp v
     seg_len = tf.truediv(self._seg_lens,1000.0)#*tf.exp(traffic_variables[:,:,7])# tf.truediv(self._seg_lens,1000.0)
@@ -377,22 +381,48 @@ class ntfCell(LayerRNNCell):
     r_in = tf.multiply(unscaled_inputs[:,:,3],flow_to_hr)
     r_out = tf.multiply(unscaled_inputs[:,:,4],flow_to_hr)
 
-    first_flow     = tf.nn.relu(tf.multiply(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,0],keep_prob=0.5),1),flow_to_hr*flow_scaling))
+    # v_f = tf.stop_gradient(v_f)
+    # a = tf.stop_gradient(a)
+    # p_cr = tf.stop_gradient(p_cr)
+    # lane_num = tf.stop_gradient(lane_num)
+    # g = tf.stop_gradient(g)
+    keep_prob = 0.5
+
+    def softargmax(x, beta=1e10):
+      x = tf.convert_to_tensor(x)
+      x_range = tf.range(x.shape.as_list()[-1], dtype=x.dtype)
+      return tf.reduce_sum(tf.nn.softmax(x*beta) * x_range, axis=-1)
+
+    softmax_flow = tf.nn.softmax(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,49:149],keep_prob=keep_prob),1))
+    first_flow = flow_to_hr*softargmax(softmax_flow)
+
+    softmax_density = tf.nn.softmax(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,150:249],keep_prob=keep_prob),1))
+    first_density = softargmax(softmax_density)
+    softmax_velocity  = tf.nn.softmax(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,250:349],keep_prob=keep_prob),1))
+    first_velocity  = softargmax(softmax_velocity)
+    soft_last_density = tf.nn.softmax(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,350:449],keep_prob=keep_prob),1))
+    last_density = softargmax(soft_last_density)
+
+    # first_flow     = flow_to_hr*flow_scaling*tf.exp(-(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,0],keep_prob=keep_prob),1)))#tf.nn.relu(tf.multiply(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,0],keep_prob=keep_prob),1),flow_to_hr*flow_scaling))
 
     # noise_q = 2000.0*tf.reduce_mean(tf.nn.tanh(tf.nn.dropout(traffic_variables[:,:,13],keep_prob=0.5)),1)#tf.random_normal(shape=tf.shape(first_flow),mean=0, stddev=100, dtype=tf.float32)
     # noise_d = 20.0*tf.reduce_mean(tf.nn.tanh(tf.nn.dropout(traffic_variables[:,:,14],keep_prob=0.5)),1)#tf.random_normal(shape=tf.shape(first_flow),mean=0, stddev=10, dtype=tf.float32)
     # noise_dN = 20.0*tf.reduce_mean(tf.nn.tanh(tf.nn.dropout(traffic_variables[:,:,15],keep_prob=0.5)),1)#
     # noise_v = 20.0*tf.reduce_mean(tf.nn.tanh(tf.nn.dropout(traffic_variables[:,:,16],keep_prob=0.5)),1)#tf.random_normal(shape=tf.shape(first_flow),mean=0, stddev=10, dtype=tf.float32)
+    # first_flow = first_flow #+ noise_q
 
-    first_flow = first_flow #+ noise_q
+    # first_flow     = tf.clip_by_value(first_flow,1.0,10000.0)
+    # first_density  = tf.nn.relu(tf.multiply(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,1],keep_prob=keep_prob),1),density_scaling))#+noise_d)
+    # first_density  = tf.clip_by_value(first_density,0.1,500.0)
 
-    first_flow     = tf.clip_by_value(first_flow,1.0,10000.0)
-    first_density  = tf.nn.relu(tf.multiply(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,1],keep_prob=0.5),1),density_scaling))#+noise_d)
-    first_density  = tf.clip_by_value(first_density,0.1,500.0)
-    first_velocity = tf.nn.relu(tf.multiply(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,2],keep_prob=0.5),1),240.0))#+noise_v)
-    first_velocity = tf.clip_by_value(first_velocity,80.0,120.0)
-    last_density   = tf.nn.relu(tf.multiply(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,3],keep_prob=0.5),1),density_scaling))#+noise_d)
-    last_density  = tf.clip_by_value(last_density,10.0,500.0)
+    # first_density  = density_scaling*tf.exp(-(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,1],keep_prob=keep_prob),1)))
+    # first_velocity  = 120.0*tf.exp(-(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,2],keep_prob=keep_prob),1)))
+    # last_density  = density_scaling*tf.exp(-(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,3],keep_prob=keep_prob),1)))
+
+    # first_velocity = tf.nn.relu(tf.multiply(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,2],keep_prob=keep_prob),1),240.0))#+noise_v)
+    # first_velocity = tf.clip_by_value(first_velocity,20.0,120.0)
+    # last_density   = tf.nn.relu(tf.multiply(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,3],keep_prob=keep_prob),1),density_scaling))#+noise_d)
+    # last_density  = tf.clip_by_value(last_density,1.0,500.0)
 
     first_flow     = tf.reshape(first_flow,[-1,1])
     first_density  = tf.reshape(first_density,[-1,1])
@@ -423,9 +453,15 @@ class ntfCell(LayerRNNCell):
     # future_r_in = tf.clip_by_value(future_r_in,0.0,100.0)
     # future_r_out = tf.clip_by_value(future_r_out,0.0,100.0)
 
-    future_r_in = tf.multiply(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,13:30],keep_prob=0.5),2),flow_scaling/10.0)#*flow_scaling#tf.truediv(flow_scaling * traffic_variables[:,:,3],120.0)
-    beta_out = tf.clip_by_value(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,31:48],keep_prob=0.5),2),0.0,1.0)
-    future_r_out = tf.truediv(tf.multiply(beta_out,prev_flows),flow_to_hr)#flow_scaling#0.*traffic_variables[:,:,4]*current_flows
+    # future_r_in = tf.multiply(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,13:30],keep_prob=keep_prob),2),flow_scaling)#*flow_scaling#tf.truediv(flow_scaling * traffic_variables[:,:,3],120.0)
+    soft_r_in = tf.nn.softmax(tf.nn.dropout(traffic_variables[:,:,13:30],keep_prob=keep_prob))
+    future_r_in = softargmax(soft_r_in)
+    soft_r_out = tf.nn.softmax(tf.nn.dropout(traffic_variables[:,:,31:48],keep_prob=keep_prob))
+    future_r_out = softargmax(soft_r_out)
+
+    # beta_out = tf.clip_by_value(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,31:48],keep_prob=keep_prob),2),0.0,1.0)
+    # future_r_out = tf.truediv(tf.multiply(beta_out,prev_flows),flow_to_hr)#flow_scaling#0.*traffic_variables[:,:,4]*current_flows
+
     future_r_in = tf.clip_by_value(future_r_in,0.0,100.0)
     future_r_out = tf.clip_by_value(future_r_out,0.0,100.0)
 
@@ -433,6 +469,29 @@ class ntfCell(LayerRNNCell):
     # future_r_in = tf.Print(future_r_in,[future_r_in,tf.math.reduce_mean(future_r_in),tf.math.reduce_max(future_r_in),tf.math.reduce_min(future_r_in)],"future_r_in",summarize=10,first_n=50)
     # future_r_out = tf.Print(future_r_out,[future_r_out,tf.math.reduce_mean(future_r_out),tf.math.reduce_max(future_r_out),tf.math.reduce_min(future_r_out)],"future_r_out",summarize=10,first_n=50)
 
+    """
+        multiple boundry
+    """
+    # first_flow1     = tf.nn.relu(tf.multiply(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,35],keep_prob=0.5),1),flow_to_hr*flow_scaling))
+    # first_flow1     = tf.clip_by_value(first_flow1,1.0,10000.0)
+    # first_flow1     = tf.reshape(first_flow1,[-1,1])
+    # first_density1  = tf.nn.relu(tf.multiply(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,36],keep_prob=0.5),1),density_scaling))#+noise_d)
+    # first_density1  = tf.clip_by_value(first_density1,0.1,500.0)
+    # first_density1  = tf.reshape(first_density1,[-1,1])
+    # first_velocity1 = tf.nn.relu(tf.multiply(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,37],keep_prob=0.5),1),240.0))#+noise_v)
+    # first_velocity1 = tf.clip_by_value(first_velocity1,20.0,120.0)
+    # first_velocity1 = tf.reshape(first_velocity,[-1,1])
+    # last_density1   = tf.nn.relu(tf.multiply(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,38],keep_prob=0.5),1),density_scaling))#+noise_d)
+    # last_density1  = tf.clip_by_value(last_density1,1.0,500.0)
+    # last_density1   = tf.reshape(last_density1,[-1,1])
+    # future_r_in1 = tf.multiply(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,39:49],keep_prob=0.5),2),flow_scaling)#*flow_scaling#tf.truediv(flow_scaling * traffic_variables[:,:,3],120.0)
+    # future_r_in1 = tf.clip_by_value(future_r_in1,0.0,100.0)
+    # beta_out1 = tf.clip_by_value(tf.reduce_mean(tf.nn.dropout(traffic_variables[:,:,50:60],keep_prob=0.5),2),0.0,1.0)
+    # future_r_out1 = tf.truediv(tf.multiply(beta_out1,prev_flows),flow_to_hr)
+    # future_r_out1 = tf.clip_by_value(future_r_out1,0.0,100.0)
+    """
+        end multiple boundry
+    """
 
     """unscaled_inputs is the current_seg volume and density [32,45,2]
         prev_segs is previous timestep volume and density [32,45,2]
@@ -493,10 +552,10 @@ class ntfCell(LayerRNNCell):
     # epsilon_out = tf.multiply(tf.exp(log_eps_out),sample_out)
     #
     # m = new_m + epsilon_out#tf.multiply(self._out_weights,new_m)#new_m
-    m_clip = tf.clip_by_value(new_m,0.0,100.0) #- meas_gamma#tf.multiply(self._out_weights,new_m)#new_m
-    m = array_ops.concat([m_clip, m_c], 1)
+    m_out = tf.clip_by_value(new_m,0.0,100.0) #- meas_gamma#tf.multiply(self._out_weights,new_m)#new_m
+    m = array_ops.concat([m_out, m_c], 1)
 
-    m_out = tf.truediv(m_clip,self._in_weights)
+    #m_out = tf.truediv(m_clip,self._in_weights)
     m_out = array_ops.concat([m_out, m_c], 1)
 
     new_state = (LSTMStateTuple(c, m) if self._state_is_tuple else
