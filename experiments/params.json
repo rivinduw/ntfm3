@@ -5,13 +5,13 @@
     "batch_size":8,
     "num_epochs": 1000,
 
-    "window_size": 720,
-    "label_window": 360,
+    "window_size": 2160,
+    "label_window": 1800,
     "window_shift": 10,
     "buffer_size":16,
     "start_error":60,
 
-    "optimizer": "sgd",
+    "optimizer": "rms",
 
     "save_summary_steps": 100,
 

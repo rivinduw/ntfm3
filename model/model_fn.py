@@ -57,7 +57,12 @@ def build_model(mode, inputs, params):
         # rnn_outputs, rnn_states  = tf.nn.dynamic_rnn(lstm_cell, input_batch, dtype=tf.float32,initial_state=_lstm_state_)
         rnn_outputs, rnn_states  = tf.nn.dynamic_rnn(lstm_cell, input_batch, dtype=tf.float32)
 
-        rnn_outputs = tf.slice(rnn_outputs, [0,0, 0], [-1,-1, params.num_cols])
+        # rnn_outputs = tf.slice(rnn_outputs, [0,0, 0], [-1,-1, params.num_cols])
+
+        predicted_outputs =  rnn_outputs#tf.layers.dense(rnn_outputs, params.rnn_output_size,activation='linear')
+        predicted_outputs =  tf.layers.dense(predicted_outputs, 512,activation='relu')
+        predicted_outputs =  tf.layers.dense(predicted_outputs, 1024,activation='linear')
+
 
 
 
@@ -73,7 +78,7 @@ def build_model(mode, inputs, params):
         # predicted_outputs =  tf.layers.dense(rnn_outputs, params.rnn_output_size,activation='linear')
         # predicted_outputs =  tf.math.subtract(tf.multiply(rnn_outputs,tf.convert_to_tensor(params.max_vals)),0.0)#*200.0#*tf.log(tf.convert_to_tensor(params.max_vals)+1.0)#tf.layers.dense(rnn_outputs, params.rnn_output_size)
         # predicted_outputs = tf.truediv(predicted_outputs,out_add+1e-3)
-        predicted_outputs = tf.multiply(rnn_outputs,tf.convert_to_tensor(params.max_vals))
+        # predicted_outputs = tf.multiply(rnn_outputs,tf.convert_to_tensor(params.max_vals))
         # predicted_outputs = tf.Print(predicted_outputs,[predicted_outputs[::5],tf.math.reduce_min(predicted_outputs),tf.math.reduce_mean(predicted_outputs),tf.math.reduce_max(predicted_outputs)],"predicted_outputs",summarize=18,first_n=50)
         # predicted_outputs = tf.nn.relu(predicted_outputs)
 
@@ -134,10 +139,69 @@ def model_fn(mode, inputs, params, reuse=False):
     # feature_mask[:,::18,1::5]=True
     # losses = tf.boolean_mask(losses, feature_mask)
     # predicted_outputs = tf.reshape(tf.boolean_mask(predicted_outputs, feature_mask),[params.batch_size,params.window_size//18,-1])
-    labels = tf.slice(labels, [0,0, 0], [-1,-1, params.num_cols])
-    feature_mask = labels > 1e-6
+
+    # labels = tf.slice(labels, [0,0, 0], [-1,-1, params.num_cols])
+    # feature_mask = labels > 1e-6
     # feature_mask[:,:,3::5] = True
     # feature_mask[:,:,4::5] = True
+
+
+##MDN
+    n1 = 3
+    rnn_means = tf.slice(predicted_outputs, [0,0, 0], [-1,-1, params.num_cols*n1])
+
+    scaling = tf.reshape(tf.tile(max_div,[n1]),[-1,1,params.num_cols*n1])
+    rnn_means = tf.multiply(rnn_means,scaling)
+
+    rnn_alpha = tf.slice(predicted_outputs, [0,0, params.num_cols*n1], [-1,-1, params.num_cols*n1])
+    rnn_sigma = tf.slice(predicted_outputs, [0,0, params.num_cols*n1*2], [-1,-1, params.num_cols*n1])
+    rnn_means = (tf.reshape(rnn_means,[-1,tf.shape(rnn_means)[1],params.num_cols,n1]))
+    # scaling = tf.tile(max_div,[1,1,1,n1])
+    # rnn_means = tf.multiply(rnn_means,scaling)
+    rnn_alpha = tf.reshape(rnn_alpha,[-1,tf.shape(rnn_alpha)[1],params.num_cols,n1])
+    rnn_sigma = tf.reshape(rnn_sigma,[-1,tf.shape(rnn_sigma)[1],params.num_cols,n1])
+
+    labels = tf.slice(labels, [0,0, 0], [-1,-1, params.num_cols])
+    feature_mask = labels > 1e-6
+
+
+
+    # y = tf.truediv(labels,max_div)
+
+    #
+    # rnn_sigma = tf.clip_by_value(rnn_sigma,0.0,4000.0)
+    # rnn_alpha = tf.clip_by_value(rnn_alpha,0.1,4000.0)
+    var = tf.log(1.+tf.exp(rnn_sigma))
+    alpha = tf.nn.softmax(rnn_alpha)
+
+    # y = tf.Print(y,[y*tf.convert_to_tensor(params.max_vals),tf.math.reduce_max(y),tf.shape(y)],"y",summarize=23,first_n=20)
+    output = tf.tile(labels,[1,1,n1])
+    output = tf.Print(output,[output,tf.math.reduce_min(output),tf.math.reduce_max(output),tf.shape(output)],"output",summarize=23,first_n=20)
+    output = tf.reshape(output, (-1,params.window_size,n1,params.num_cols))
+    output = tf.transpose(output,[0,1,3,2])
+
+
+    density = tf.reduce_sum(
+            alpha *
+            (1.0 / (tf.sqrt(2.0 * 22.0/7.0) * tf.sqrt(var))) *
+            tf.exp(-0.5 * tf.square( output - rnn_means) / var)
+            , axis=3)
+    # density = tf.reduce_sum(var*tf.exp(-1.0*var*(output - rnn_means)),axis=3)
+    # density = tf.multiply(density,max_div)
+    density_m = tf.boolean_mask(density, feature_mask)
+    # density = tf.Print(density,[density,tf.math.reduce_max(density),tf.shape(density)],"density",summarize=23,first_n=20)
+
+    mean_output = tf.reduce_sum(rnn_means*tf.nn.softmax(alpha),axis=-1)#rnn_means[:,:,:,0]#
+    # mean_output = tf.Print(mean_output,[mean_output,tf.math.reduce_max(mean_output),tf.shape(mean_output)],"mean_output",summarize=23,first_n=20)
+    predicted_outputs = mean_output#tf.multiply(mean_output,max_div)
+    predicted_outputs = tf.Print(predicted_outputs,[predicted_outputs,tf.math.reduce_max(predicted_outputs),tf.shape(predicted_outputs)],"predicted_outputs",summarize=23,first_n=20)
+
+    nll = -tf.reduce_sum(tf.log(density_m+1e-3))
+    # nll = -tf.reduce_sum(tf.log(1.0+density_m))#tf.log(density_m+1e-3))
+
+
+
+
 
 
     predicted_outputs_exp = predicted_outputs#tf.exp(predicted_outputs)
@@ -221,8 +285,8 @@ def model_fn(mode, inputs, params, reuse=False):
     # losses = tf.boolean_mask(losses, timestep_mask)
 
     # loss = tf.losses.mean_squared_error(labels_masked,predicted_outputs_masked)#tf.reduce_mean(losses)
-    mse = tf.losses.mean_squared_error(labels_masked,predicted_outputs_masked)
-    loss = mse
+    # mse = tf.losses.mean_squared_error(labels_masked,predicted_outputs_masked)
+    loss = nll
 
     # predicted_outputs1 = tf.boolean_mask(predicted_outputs1, feature_mask)
     # error1 = tf.subtract(labels_masked,predicted_outputs1)
