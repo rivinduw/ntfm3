@@ -5,11 +5,11 @@
     "batch_size":8,
     "num_epochs": 1000,
 
-    "window_size": 4320,
-    "label_window": 2160,
-    "window_shift": 360,
+    "window_size": 720,
+    "label_window": 360,
+    "window_shift": 10,
     "buffer_size":16,
-    "start_error":2160,
+    "start_error":60,
 
     "optimizer": "sgd",
 

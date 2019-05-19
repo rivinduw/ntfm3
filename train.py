@@ -62,10 +62,10 @@ if __name__ == '__main__':
 
     # Create the input data pipeline
     logging.info("Creating the datasets...")
-    train_x = load_dataset_from_csv(filenames = ["data/train/data-in.csv"],params = params)
-    train_y = load_dataset_from_csv(filenames = ["data/train/data-out.csv"],params = params)
-    eval_x = load_dataset_from_csv(filenames = ["data/test/data-in.csv"],params = params)
-    eval_y = load_dataset_from_csv(filenames = ["data/test/data-out.csv"],params = params)
+    train_x = load_dataset_from_csv(filenames = ["data/train/SH1N30s2-train-in.csv"],params = params)
+    train_y = load_dataset_from_csv(filenames = ["data/train/SH1N30s2-train-out.csv"],params = params)
+    eval_x = load_dataset_from_csv(filenames = ["data/test/SH1N30s2-test-in.csv"],params = params)
+    eval_y = load_dataset_from_csv(filenames = ["data/test/SH1N30s2-test-out.csv"],params = params)
 
 
     # Specify other parameters for the dataset and the model

@@ -56,9 +56,9 @@ def evaluate_sess(sess, model_spec, num_steps, writer=None, params=None):
     print(predicted_outputs.shape)
     print(labels.shape)
     print(input_batch.shape)
-    predicted_outputs = predicted_outputs.reshape((params.batch_size,params.window_size,params.num_segs*5))
-    labels = labels.reshape((params.batch_size,params.window_size,params.num_segs*5))
-    input_batch = input_batch.reshape((params.batch_size,params.window_size,params.num_segs*5))
+    predicted_outputs = predicted_outputs.reshape((params.batch_size,params.window_size,params.num_segs*2))
+    labels = labels.reshape((params.batch_size,params.window_size,params.num_segs*2))
+    input_batch = input_batch.reshape((params.batch_size,params.window_size,params.num_segs*2))
 
     def rolling_sum(a, n=30) :
         ret = np.cumsum(a, axis=0, dtype=float)

@@ -15,12 +15,12 @@ def load_dataset_from_csv(filenames = ["data/SH1N30s2.csv"],params=None):
     """
 
 
-    num_cols = int(params.num_cols)+1
+    num_cols = int(params.num_cols)
     max_values=tf.convert_to_tensor(params.max_vals)
     # Creates a dataset that reads all of the records from CSV files, with headers,
     #  extracting float data from 90 float columns ater the first datetime column
     record_defaults = [[0.0]] * num_cols  # Only provide defaults for the selected columns
-    dataset = tf.contrib.data.CsvDataset(filenames, record_defaults, header=True, select_cols=list(range(0, num_cols)))
+    dataset = tf.contrib.data.CsvDataset(filenames, record_defaults, header=True, select_cols=list(range(1, num_cols+1)))
 
     def parser(*x):
         """The output from the CsvDataset is wierd (has a separate tensor for each feature?).
