@@ -1,7 +1,7 @@
 {
     "model_version": "lstm",
 
-    "learning_rate": 1e-2,
+    "learning_rate": 4e-3,
     "batch_size":8,
     "num_epochs": 1000,
 
@@ -11,7 +11,7 @@
     "buffer_size":16,
     "start_error":60,
 
-    "optimizer": "rms",
+    "optimizer": "adam",
 
     "save_summary_steps": 100,
 
