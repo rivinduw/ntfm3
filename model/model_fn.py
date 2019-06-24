@@ -23,7 +23,7 @@ def build_model(mode, inputs, params):
     input_batch = inputs['input_batch']
 
     if params.model_version == 'lstm':
-        lstm_cell = ntfCell(params.num_cols,num_var = 450,max_vals = params.max_vals, all_seg_lens = params.seg_lens,use_peepholes=True,cell_clip=5.0,num_proj=512)
+        lstm_cell = ntfCell(params.num_cols,num_var = 50,max_vals = params.max_vals, all_seg_lens = params.seg_lens,use_peepholes=True,cell_clip=5.0,num_proj=params.num_cols)
         # lstm_cell = LSTMCell2(params.num_cols,use_peepholes=True,cell_clip=5.0)#,use_peepholes=True,cell_clip=3.0)
 
         # init_state = lstm_cell.zero_state(params.batch_size, dtype=tf.float32)
@@ -50,7 +50,7 @@ def build_model(mode, inputs, params):
         # initial_state = [(tf.add(state[0],tf.ones_like(state[0])*params.max_vals), state[1]) for state in initial_state]
         #input_batch = tf.truediv(tf.log(input_batch+1.0),tf.log(tf.convert_to_tensor(params.max_vals)+1.0)+1e-6)
         # input_batch = tf.truediv(input_batch + 0.0,tf.convert_to_tensor(params.max_vals)+1e-3)
-        input_batch = tf.truediv(input_batch,tf.convert_to_tensor([2459]+params.max_vals)+1e-3)
+        input_batch = tf.truediv(input_batch,tf.convert_to_tensor(params.max_vals)+1e-3)
 
 
 
@@ -75,7 +75,7 @@ def build_model(mode, inputs, params):
         # predicted_outputs = tf.truediv(predicted_outputs,out_add+1e-3)
         predicted_outputs = tf.multiply(rnn_outputs,tf.convert_to_tensor(params.max_vals))
         # predicted_outputs = tf.Print(predicted_outputs,[predicted_outputs[::5],tf.math.reduce_min(predicted_outputs),tf.math.reduce_mean(predicted_outputs),tf.math.reduce_max(predicted_outputs)],"predicted_outputs",summarize=18,first_n=50)
-        predicted_outputs = tf.nn.relu(predicted_outputs)
+        # predicted_outputs = tf.nn.relu(predicted_outputs)
 
         # """multi
         # """
@@ -134,7 +134,7 @@ def model_fn(mode, inputs, params, reuse=False):
     # feature_mask[:,::18,1::5]=True
     # losses = tf.boolean_mask(losses, feature_mask)
     # predicted_outputs = tf.reshape(tf.boolean_mask(predicted_outputs, feature_mask),[params.batch_size,params.window_size//18,-1])
-    labels = tf.slice(labels, [0,0, 1], [-1,-1, params.num_cols])
+    labels = tf.slice(labels, [0,0, 0], [-1,-1, params.num_cols])
     feature_mask = labels > 1e-6
     # feature_mask[:,:,3::5] = True
     # feature_mask[:,:,4::5] = True
@@ -188,9 +188,9 @@ def model_fn(mode, inputs, params, reuse=False):
     pick_loss_mask = np.full((params.batch_size,params.window_size,params.num_cols), False)
     pick_loss_mask[:,params.start_error:,0::5*1]= True
     pick_loss_mask[:,params.start_error:,1::5*1]= True
-    pick_loss_mask[::4,params.start_error:,2::5*1]= True
-    pick_loss_mask[::4,params.start_error:,3::5*1]= True
-    pick_loss_mask[::4,params.start_error:,4::5*1]= True
+    pick_loss_mask[::8,params.start_error:,2::5*1]= True
+    # pick_loss_mask[::1,params.start_error:,3::5*1]= True
+    # pick_loss_mask[::1,params.start_error:,4::5*1]= True
     feature_mask = tf.math.logical_and(feature_mask,pick_loss_mask)
 
     predicted_outputs_masked = tf.boolean_mask(predicted_outputs, feature_mask)#tf.boolean_mask(predicted_outputs/max_div, feature_mask)
@@ -234,17 +234,20 @@ def model_fn(mode, inputs, params, reuse=False):
     # quantile2 = 0.1
     # loss2 = tf.reduce_mean(tf.maximum(quantile2*error2, (quantile2-1)*error2), axis=-1)
     #
-    error = tf.subtract(labels_masked,predicted_outputs_masked)
-    quantile3 = 0.5
-    loss3 = tf.reduce_mean(tf.maximum(quantile3*error, (quantile3-1)*error), axis=-1)
+    error = tf.subtract(predicted_outputs_masked,labels_masked)
+
+    j_p = tf.sqrt(tf.reduce_mean(error**2))
+
+    # quantile3 = 0.5
+    # loss3 = tf.reduce_mean(tf.maximum(quantile3*error, (quantile3-1)*error), axis=-1)
 
     # loss = loss3 #loss1 + loss2 + loss3
 
-    total_error = tf.reduce_sum(tf.square(tf.subtract(labels_masked, tf.reduce_mean(labels_masked))))
-    unexplained_error = tf.reduce_sum(tf.square(tf.subtract(labels_masked, predicted_outputs_masked)))
+    # total_error = tf.reduce_sum(tf.square(tf.subtract(labels_masked, tf.reduce_mean(labels_masked))))
+    # unexplained_error = tf.reduce_sum(tf.square(tf.subtract(labels_masked, predicted_outputs_masked)))
     # R_squared = tf.subtract(1.0, tf.div(unexplained_error, total_error))
-    huber_loss = tf.losses.huber_loss(labels_masked,predicted_outputs_masked)
-    loss = huber_loss #tf.reduce_sum(tf.div(unexplained_error, total_error)) + loss3 + huber_loss
+    # huber_loss = tf.losses.huber_loss(labels_masked,predicted_outputs_masked)
+    loss = j_p#huber_loss #tf.reduce_sum(tf.div(unexplained_error, total_error)) + loss3 + huber_loss
 
     # predicted_outputs = predicted_outputs1
 

@@ -2,6 +2,7 @@
 #input_fn stores the input data pipeline
 
 import tensorflow as tf
+import numpy as np
 # max_vals = [22520.0,188.0,38080.0,317.5,17480.0,145.5,51000.0,425.0,35360.0,295.0]
 
 def load_dataset_from_csv(filenames = ["data/SH1N30s2.csv"],params=None):
@@ -15,12 +16,12 @@ def load_dataset_from_csv(filenames = ["data/SH1N30s2.csv"],params=None):
     """
 
 
-    num_cols = int(params.num_cols)+1
+    num_cols = int(params.num_cols)
     max_values=tf.convert_to_tensor(params.max_vals)
     # Creates a dataset that reads all of the records from CSV files, with headers,
     #  extracting float data from 90 float columns ater the first datetime column
     record_defaults = [[0.0]] * num_cols  # Only provide defaults for the selected columns
-    dataset = tf.contrib.data.CsvDataset(filenames, record_defaults, header=True, select_cols=list(range(0, num_cols)))
+    dataset = tf.contrib.data.CsvDataset(filenames, record_defaults, header=True, select_cols=list(range(1, num_cols+1)))
 
     def parser(*x):
         """The output from the CsvDataset is wierd (has a separate tensor for each feature?).
@@ -79,10 +80,17 @@ def input_fn(mode, inputs, labels, params):
     label_window = params.label_window
     # Query the output of the iterator for input to the model
     input_batch, label_batch = iterator.get_next()
-    new_input_batch = tf.zeros_like(input_batch[:,label_window:,:])
+
+    # new_input_batch = tf.zeros_like(input_batch[:,label_window:,:])
+
     # new_label_batch = tf.zeros_like(label_batch[:,3600:,:])
 
-    new2_input_batch = tf.concat([input_batch[:,:label_window,:],new_input_batch], axis=1)
+    input_mask = np.full( (input_batch.get_shape()[0],input_batch.get_shape()[1],input_batch.get_shape()[2]), False)
+    input_mask[:,::30,:] = True
+    new2_input_batch = tf.boolean_mask(input_batch,input_mask)
+
+    # new2_input_batch = tf.concat([input_batch[:,:label_window,:],new_input_batch], axis=1)
+
     # new2_label_batch = tf.concat([label_batch[:,:3600,:],new_label_batch], axis=1)
 
     new2_input_batch.set_shape([input_batch.get_shape()[0], input_batch.get_shape()[1],input_batch.get_shape()[2]])

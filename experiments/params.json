@@ -1,15 +1,15 @@
 {
     "model_version": "lstm",
 
-    "learning_rate": 1e-2,
-    "batch_size":8,
+    "learning_rate": 1e-3,
+    "batch_size":16,
     "num_epochs": 1000,
 
-    "window_size": 4320,
+    "window_size": 2160,
     "label_window": 2160,
-    "window_shift": 360,
-    "buffer_size":16,
-    "start_error":2160,
+    "window_shift": 64,
+    "buffer_size":4,
+    "start_error":60,
 
     "optimizer": "sgd",
 
