@@ -1,4 +1,4 @@
-Markdown==3.0.1
+Markdown==3.8.1
 numpy>=1.15.3
 pandas>=0.23.4
 tensorflow>=1.11.0
